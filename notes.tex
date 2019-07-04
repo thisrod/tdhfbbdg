@@ -1,0 +1,208 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Log of Bogoliubov dynamics work for Tapio
+
+2019-06-24 Overview meeting
+
+I'm going to write some software for Tapio.  This meeting outlined
+what it will do.
+
+The initial goal is to solve the BdG equations statically, in 2D,
+with an arbitrary potential.  This will be a simple prototype to
+validate the faster and more complicated versions I'll develop
+later.  I already have parts of it in Matlab.  The algorithm is as
+follows (at least for bosons).
+
+\item{1.} Solve very precisely for the equilibrium order parameter.
+The Bogoliubov modes are very sensitive to its chemical potential.
+Tapio knows an efficient way to do this, called Successive Over Relaxation.
+
+\item{2.} Set up a whopping great numerical derivative matrix.
+
+\item{3.} Diagonalise.  We want all the eigenfunctions, so it isn't
+clear that Krylov subspace methods will do better than dense methods.
+
+No doubt there are some tricks, e.g.\ the Householder reflection
+to keep the excited modes orthogonal to the order parameter.
+
+My code to do Steps~2 and~3 is at {\tt https://github.com/thisrod/drugs/blob/master/bec/buv.m}.
+
+Later, the idea is to propagate the sound wave modes in parallel.
+Apparently each mode follows GPE dynamics, coordinated by a common
+density.  Bogdan has code to solve lots of GPEs in parallel for
+Wigner and positive-P calculations.  We plan to work in Julia, which
+is no doubt a better alternative nowadays compared to Bodgan's hand
+kludged macros.  However, that code will be at least a useful resouce
+to look up how to go fast.  Possibly, the shortest path to our goal
+is to port the Wigner code to Julia, then modify it to propagate
+Bogoliubov modes instead of phase-space samples.
+
+2019-06-25 Outline of project
+
+The initial goal is for me to play around with BdG diagonalisation
+in Matlab.  This has two goals.  The first is Fred Brooks's “build
+one to throw away.”  The second is to have a simple and correct
+prototype, to validate the complicated ones that I'm going to build
+later.
+
+Imaginary time propagation is a simple way to find the equilibrium
+order parameter, but it has limitations described below on 2019-06-26.  The Successive Over Relaxation method avoids them.  Instead of
+propagating the whole order parameter in imaginary time, you update
+one grid point at once.  There is some trick, called over relaxation,
+to preserve the norm.  I guess this is calculating the GPE operator
+on a normalised state, so when it converges, it has the exact
+solution.  I'll need to read some papers to figure out the details.
+
+Once the order parameter has converged and the propagation has
+stopped, it is a good idea to test the residual of the GPE.  This
+will show up any systematic errors of that type.
+
+Tapio doesn't think that the basic Bogoliubov approach will suffice.
+He wants to use a method that is self-consistent with respect to
+the non-condensate density, such as Hartree-Fock-Bogoliubov or a
+Popov method.
+
+There are a few methods to validate a BdG solver.  The first check
+is that it reproduces the condensate mode, with a pair of energies~$±E$
+due to the~$u→v*$ symmetry.  The energy~$E$ should be small, on the
+order of~$10^{-10}·ℏω$.
+
+The next step is to check that the solver correctly reproduces the
+modes for a harmonic trap, with and without a soliton.  The simplest
+check is a plot of mode energy against angular momentum.  You can
+calculate angular momentum by taking expectation values of the mode
+functions.  (Except that there are two mode functions, $u$ and~$v$.
+Do they necessarily have the same angular momentum?  Probably this
+is necessary for the angular momentum of the order parameter to be
+conserved as the sound waves oscillate.)
+
+The harmonic oscillator, with zero repulsion, should exactly reproduce
+the eigenstates, with the~$nℏω$ ladder.  What does angular momentum
+do for a 2D oscillator?  Small repulsion should cause small changes
+in the eigenvalues.
+
+A vortex order parameter can be found by solving the GPE with a
+Lagrange multiplier, just like the chemical potential can set the
+particle number.  This means solving
+$$(-∇²+g|ψ|²-Ω\hat L_z)ψ=μψ.$$
+I'll need to think through the details of that.  How do you set~$Ω$?
+I guess this can't give a superposition of angular momenta because
+there will be a unique value of~$L_z$ that minimises the energy.
+
+The vortex has a Kelvin mode.  This has angular momentum~$-ℏ$, and
+negative energy.  (The degenerate pairs of modes have opposite
+energy and angular momentum.)  The negative energy means that you
+can reduce the energy of the gas by exciting the mode.  It rotates
+against the sense of the vortex, and represents the vortex core
+spiralling outwards and escaping from the edge of the trap.  This
+mode doesn't matter physically because it breaks conservation of
+angular momentum, but it provides a useful numerical check.
+
+The key numerical issue is how to implement the linear operator
+defined by the effect on~$(u_j,v_j)$ of the left-hand side of
+Equations~2.21 in \cite{aop-70-67}.  Apparently, the time evolution
+of the modes can be found by replacing the right hand sides of those
+Equations by~$du\over dt$ and~$dv\over dt$.  So the operator that
+must be diagonalised to give the initial modes is the same one that
+must be applied to propagate dynamics.
+
+A tempting approach is to parallelise the application of this
+operator, using a Finite Discrete Variable(?) method.  This breaks
+the 2D grid into a bunch of subgrids, does a spectral derivative
+on each subgrid, and enforces continuity at the boundaries.  The
+resulting matrix is almost block diagonal, each block correponding
+to a subgrid.  The exception is that the last row and column of
+each block overlap with the first row and column of the next one,
+to enforce the boundary condition.
+
+The parallelism from FDV comes from evaluating the blocks independently
+on the subgrids.  Plausibly, each block could be assigned to a GPU,
+and applied to~$10⁴$ mode vectors in parallel by GPU threads.  The
+same parallel linear operator can be used both for diagonalisation
+at the start, and for time propagation.
+
+The other approach is to propagate the mode vectors by solving lots
+of GPEs in parallel, as in a phase space simulation.
+
+We need to look at the resources available on OzStar, and see if
+there is enough memory to keep all the modes in core at once.  The
+minimum useful grid is~$100×100$, with~$10⁴$ points.  Almost all
+of the BdG modes need to be accounted for, so the memory required
+for double precision is~$(10⁴\,{\rm modes})×(10⁴\,{\rm
+points/mode})×(8\,\rm B)=1\,\rm GB$.  Tapio would like to use larger
+grids where this comes out to~$1\,\rm TB$.
+
+If all the modes fit into memory at once, the FDV parallelism makes
+sense.  Otherwise, modes will have to be swapped in and out of
+memory.  The problem isn't embarassingly parallel, because every
+mode depends on the total particle density, which depends on all
+the modes.
+
+Network complexity shouldn't be an issue.  Only the total density
+has to be communicated, and the boundary conditions if the FDV
+parallelism is exploited.
+
+2019-06-26 Normalising imaginary time propagation
+
+Imaginary time propagation is a standard way to find the equilibrium
+order parameter of a Bose gas.  Let's say for now that the GPE is
+$$i{ψ_t}=(-∇²+V+g|ψ|²)ψ,$$
+where~$V$ is a trapping potential.  A substitution is made with~$τ=it$, so the GPE becomes
+$${ψ_τ}=-(-∇²+V+g|ψ|²)ψ.$$
+When this is propagated over~$τ$, the order parameter~$ψ(x,t)$
+shrinks over time, but the high-energy components shrink faster
+than the low-energy ones.  If the order parameter is renormalised
+during the propagation, to keep~$∥ψ∥²=N$, then the solution will
+converge to the equilibrium order parameter~$ψ₀$.
+
+The obvious way to discretise this is to solve the GPE for a time
+step~$h$, to get~$ψ₁(x)$, then set~$ψ(x,t+h)=√N·ψ₁(x)/∥ψ₁∥$.  The
+propagation stops when the $ψ(x,t+h)=ψ(x,t)$.  However, during the
+time step, the GPE is being solved with a reduced density, which
+makes the converged chemical potential systematically low.  In
+principle, you could fix this by reducing the time step over the
+propagation, but that becomes inefficient in practice.
+
+Peter Drummond suggested another way to renormalise.  Let~${\cal
+G}ψ=-(-∇²+V+g|ψ|²)ψ$ be the right-hand side of the GPE.  Then,
+instead of discontinuously updating the order parameter each time
+step, subtract the component parallel to~$ψ$, to give a modified
+GPE
+$${ψ_τ}=\left({\cal G}-∫{ψ*\over ∥ψ∥}{\cal G}ψ\right)ψ.$$
+The original motivation was that higher order PDE solvers rely
+on~$ψ$ being a continuous function of~$t$, and lose precision due
+to the jumps in normalisation.  But there's another benefit relevant
+here.  The solution to this equation preserves its particle number
+over each time step, and might avoid the systematic low density
+problem.
+
+In the RK4IP algorithm, the operator is split as~${\cal G}=D+N$.
+By linearity, subtracting the parallel components from~$D$ and~$N$
+separately adds up to subtract them from~$\cal G$.
+
+2019-06-26 Checking time steps and convergence
+
+The naive imaginary time method (and maybe other methods) has a
+time step adaptation problem.  We want to detect when the chemical
+potential~$μ$ is close to convergence, but the residual of the GPE
+is large.  Idea: find the current chemical potential, estimate the
+converged value by whatsisname extrapolation, find the residual,
+then reduce the time step if the residual is large compared to the
+difference between the two chemical potentials.
+
+2019-07-02 Heat equation validation
+
+The RK4IP algorithm, in imaginary time, involves the operator~$\exp(-τD)$,
+where~$D=-∇²$.  On its own, this operator solves the heat
+equation~$φ_τ=-Dφ$, with~$φ(x,τ)=\exp(-τD)φ(x,0)$ up to abuse of
+notation.  That equation is separable, and it has the 1D solution
+$$φ(x,t)={1\over 2√{πt}}e^{-x²\over 4t}.$$
+The implementation of~$\exp(-τD)$ should
+satisfy~$φ(x,t+τ)=\exp(-τD)φ(x,t)$.
+
+
+\bye
