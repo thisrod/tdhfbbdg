@@ -1,82 +1,87 @@
 module OrderParameterTests
 
 using Fields
-using RK4IP
 using Test
 
-@testset "Operator exp(∇²) solves the heat equation" begin
-	φ(x,t) = exp(-x^2/4t)/2/√(π*t)
-	
-	h = 0.1;  l = 15;  N = ceil(Int, l/h)
-	R = XField([h, h], ones(N, N))
-	x, y = grid(R)
-	
-	t = 0.5
-	φ0 = apply_field(x -> φ(x,t), x) * apply_field(x -> φ(x,t), y)
-	
-	τ = 0.1
-	φ1 = explap(φ0, τ)
-	φ2 = apply_field(x -> φ(x,t+τ), x) * apply_field(x -> φ(x,t+τ), y)
-	
-	@test φ1.vals ≈ φ2.vals
+using RK4IP
+
+x, y = begin
+	h = 0.1;  l = 15;  n = ceil(Int, l/h)
+	R = XField([h, h], ones(n, n))
+	grid(R)
 end
 
-@testset "harmonic oscillator ground state" begin
-	V(x,y) = x^2 + y^2
-	C = 0
+@testset "lexp solves the 2D heat equation df/dt = ∇²f" begin
 
-	h = 0.1;  l = 15;  n = ceil(Int, l/h)
+	f(t,x) = exp(-x^2/4t)/√t
+	f(t,x,y) = f(t,x)*f(t,y)
+	
+	f₀ = apply_fields((x, y) -> f(0.5, x, y), x, y)
+	τ = 0.1
+	f₁ = lexp(f₀,τ)
+	f₂ = apply_fields((x, y) -> f(0.5 + τ, x, y), x, y)
+	
+	@test f₁.vals ≈ f₂.vals
+end
+
+# Harmonic oscillator and ground state
+V = x^2 + y^2
+H(ψ) = -∇²(ψ) + V*ψ
+φ₀ = exp(-(x^2+y^2)/2)/√π
+@assert sum(abs2(φ₀)) ≈ 1
+
+@testset "harmonic oscillator ground state" begin
+
 	Δt = 5e-3
-	
-	H(ψ) = -lap(ψ) + nlptl(ψ, V, C)
-	D(ψ) = explap(ψ, Δt/2)
-	N(ψ) = -Δt*nlptl(ψ, V, C)
-	
-	R = XField([h, h], ones(n, n))
-	x, y = grid(R)
-	ψ₀ = exp(-(x^2+y^2)/2)/√π
+
+	D(ψ) = lexp(ψ, Δt/2)
+	N(ψ) = -Δt*V*ψ
 	
 	# n-D ground state has energy n
-	@test sum(conj(ψ₀)*H(ψ₀)) ≈ 2
+	@test sum(conj(φ₀)*H(φ₀)) ≈ 2
 	
-	ψ = itime_step(ψ₀, D, N)
-	ψ₁ = ψ/norm(ψ)
+	ψ = advance(φ₀,D,N);  ψ /= norm(ψ)
+	@test ψ.vals ≈ φ₀.vals
 	
-	@test ψ₁.vals ≈ ψ₀.vals
-	
-	φ₀ = ψ₀*XField([h, h], 1 .+ 0.1*randn(n, n))
-	φ = itime_step(φ₀, D, N)
-	φ₁ = φ/norm(φ)
-	
-	@test norm(φ₁-ψ₀) < norm(φ₁-φ₀)
+	ψ₀ = φ₀*XField([h, h], 1 .+ 0.1*randn(n, n))
+	ψ = advance(ψ₀,D,N);  ψ /= norm(ψ)
+	@test norm(ψ-φ₀) < norm(ψ-ψ₀)
 end
 
 end # module
 
 using Fields
+using Test
 using RK4IP
+using PyPlot
 
-	V(x,y) = x^2 + y^2
-	C = 0.5
-
+x, y = begin
 	h = 0.1;  l = 15;  n = ceil(Int, l/h)
+	R = XField([h, h], ones(n, n))
+	grid(R)
+end
+
+# Harmonic oscillator and ground state
+V = x^2 + y^2
+H(ψ) = -∇²(ψ) + V*ψ
+φ₀ = exp(-(x^2+y^2)/2)/√π
+
+	C = 0.5
 	Δt = 1e-2
 	
-	H(ψ) = -lap(ψ) + nlptl(ψ, V, 0)
-	L(ψ) = -lap(ψ) + nlptl(ψ, V, C)
-	D(ψ) = explap(ψ, Δt/2)
-	N(ψ) = -Δt*nlptl(ψ, V, C)
+	L(ψ) = H(ψ) + C*abs2(ψ)*ψ
+	D(ψ) = lexp(ψ, Δt/2)
+	N(ψ) = -Δt*(V + C*abs2(ψ))*ψ
 	
-	R = XField([h, h], ones(n, n))
-	x, y = grid(R)
-	ψ₀ = exp(-(x^2+y^2)/2)/√π
-	ψ = deepcopy(ψ₀)
+	ψ = deepcopy(φ₀)
 	μs = zeros(101)
-	μs[1] = sum(conj(ψ₀)*L(ψ₀)).re
+	μs[1] = sum(conj(φ₀)*L(φ₀)).re
 	for i = 1:100
-		global ψ = itime_step(ψ, D, N)
+		global ψ = advance(ψ, D, N)
 		ψ /= norm(ψ)
 		global μs[i+1] = sum(conj(ψ)*L(ψ)).re
 	end
-	
+
+	clf();  plot(1:101, μs, ".k")
+
 #	@test ψ₁.vals ≈ ψ₀.vals
