@@ -1,5 +1,6 @@
+module Fields
+
 using FFTW
-using Test
 
 import AbstractFFTs.fft
 import AbstractFFTs.ifft
@@ -14,7 +15,10 @@ import Base.exp
 import Base.sin
 import Base.cos
 import Base.abs2
+using PyPlot
 import PyPlot.contour
+
+export Field, XField, KField, grid, fft, ifft, sum, norm, apply_fields, apply_field
 
 struct XField
 	h	# 2 element vector with subtype of real
@@ -86,28 +90,11 @@ end
 sum(u::XField) = prod(u.h)*sum(u.vals)
 norm(u::Field) = sqrt(sum(abs2(u)))
 
-@testset "fields have the expected grids" begin
-	h = 0.2
-	U = XField([h, h], ones(3,4))
-	X, Y = grid(U);
-	
-	x = [-0.2, 0, 0.2];
-	y = [-0.3, -0.1, 0.1, 0.3]'
-	
-	@test X.vals ≈ repeat(x, 1, 4)
-	@test Y.vals ≈ repeat(y, 3, 1)
-end
-
-@testset "integral of cos^2 with single-point axis" begin
-	h = π/30
-	R = XField([h, 1], ones(30,1))
-	x, y = grid(R)
-	@test sum(cos(x)^2) ≈ pi/2
-end
-
 # TODO set axes to grid and label x, y or kx, ky
 function contour(u::Field)
 	x, y = grid(u)
 	contour(x.vals, y.vals, u.vals)
 	gca().set_aspect("equal")
+end
+
 end
