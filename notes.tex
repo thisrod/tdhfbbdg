@@ -204,5 +204,29 @@ $$φ(x,t)={1\over 2√{πt}}e^{-x²\over 4t}.$$
 The implementation of~$\exp(-τD)$ should
 satisfy~$φ(x,t+τ)=\exp(-τD)φ(x,t)$.
 
+2019-07-05 Trick for finding convergence
+
+The following plot shows a numerical process converging to some
+chemical potential~$μ$.  The process terminated before convergence,
+and the final value of~$μ$ has been subtracted.  For the initial
+steps, where the final value might as well be the exact value, the
+graph shows a nice geometric convergence, gaining an extra digit
+every 50 steps.  This appears as a straight line on the semi-log
+plot.
+
+If the exact converged value had been subtracted, this straight
+line would continue.  As it is, there comes a point where~$μ$ has
+converged to within about~$10^{-4}$ of final value, which is about
+as far as the final value is from the converged value.  At this
+point, the difference matters.  The graph drops below the line,
+because the values are significantly closer to the final value than
+the converged value.
+
+The trick is that, just by looking at the graph, I can tell that~$μ$ is
+about~$10^{-4}$ away from convergence.
+
+Is there a way to extrapolate geometric convergence?
+
+\XeTeXpicfile resp190705.png width 0.7\hsize
 
 \bye
