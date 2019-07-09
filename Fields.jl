@@ -15,8 +15,6 @@ import Base.exp
 import Base.sin
 import Base.cos
 import Base.abs2
-using PyPlot
-import PyPlot.contour
 
 export Field, XField, KField, grid, fft, ifft, sum, norm, apply_fields, apply_field
 
@@ -89,12 +87,5 @@ end
 
 sum(u::XField) = prod(u.h)*sum(u.vals)
 norm(u::Field) = sqrt(sum(abs2(u)))
-
-# TODO set axes to grid and label x, y or kx, ky
-function contour(u::Field)
-	x, y = grid(u)
-	contour(x.vals, y.vals, u.vals)
-	gca().set_aspect("equal")
-end
 
 end
