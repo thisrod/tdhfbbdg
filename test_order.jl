@@ -2,6 +2,7 @@ module OrderParameterTests
 
 using Fields
 using Test
+using LinearAlgebra
 
 using RK4IP
 
@@ -74,4 +75,24 @@ end
 
 end
 
+@testset "harmonic oscillator ground state stable under Gauss-Seidel" begin
+	x1, y1 = begin
+		h = 0.1;  l = 15;  n = ceil(Int, l/h)
+		R = XField([h, 1], ones(n, 1))
+		grid(R)
+	end
+	
+	V = x1^2
+	φ₀ = π^(-1/4)*exp(-x1^2/2)
+	@assert norm(φ₀) ≈ 1
+	
+	y₀ = φ₀.vals
+	H = -lmat(V) + Diagonal(V.vals[:])
+	y₁ = gauss_seidel_step(H, y₀, y₀)
+	φ₁ = XField(φ₀.h, reshape(y₁, size(φ₀.vals)))
+			
+	@test φ₁.vals ≈ φ₀.vals
+end
+
 end # module
+

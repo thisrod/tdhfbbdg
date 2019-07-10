@@ -17,6 +17,7 @@ import Base.exp
 import Base.sin
 import Base.cos
 import Base.abs2
+import LinearAlgebra.norm
 
 export Field, XField, KField, grid, fft, ifft, sum, norm, apply_fields, apply_field, lmat
 
@@ -86,7 +87,6 @@ function apply_field(f, u::T) where {T <: Field}
 end
 
 # Integrals
-# TODO add these methods to Base.sum and Linalg.norm
 
 sum(u::XField) = prod(u.h)*sum(u.vals)
 norm(u::Field) = sqrt(sum(abs2(u)))
