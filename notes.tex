@@ -229,4 +229,72 @@ Is there a way to extrapolate geometric convergence?
 
 \XeTeXpicfile resp190705.png width 0.7\hsize
 
+2019-07-05 Gaussians
+
+The normal distribution with standard deviation~$σ(t)$ is
+$$φ(x,t) = {e^{-x²/2σ²}\over √{2π}σ}.$$
+This satisfies
+$$φ_t = \left({x²\over σ²}-1\right){φ\over σ}\dot σ
+	\qquad{\rm and}\qquad
+	φ_{xx} = \left({x²\over σ²}-1\right){φ\over σ²}.
+$$
+The 1D harmonic oscillator Hamiltonian, in the scaled units that I'm using, is~$=-D_{xx}+x²$, so the gaussian eigenstate has~$σ=1$, and eigenvalue~1.  Normalisation gives~$φ₀(x)=π^{-1\over 4}e^{-x²/2}$.  The 2D ground state is~$φ₀(x,y)=φ₀(x)·φ₀(y)={1\over √π}e^{-(x²+y²)/2}$, with eigenvalue~2.
+
+To solve the heat equation~$φ_t=φ_{xx}$, set~$\dot σ={1\over σ}$, with solution~$σ(t)=√{2t}$.
+
+2019-07-08 Successive over-relaxation
+
+The SOR method is a way to solve a system of linear equations,
+$Ay=b$.  (I'll call the unknown~$y$, because in my case it is a
+vector of samples from the wave function~$ψ(x_i)$, and I want to
+save~$x$ for the coordinate.)  SOR is a variation of an interative
+method called Gauss-Seigel.  The idea is to start with a guess~$y^{(0)}$,
+then iterate over the grid~$x$, so that we currently have updated
+estimates~$y^{(1)}_j$ for~$1≤j<i$.  We now pick row~$i$, and solve
+the equation
+$$b_i = ∑_{j=1}^{i-1}a_{ij}y^{(1)}_j + a_{ii}y_i + ∑_{j=i+1}^{n}a_{ij}y^{(0)}_j$$
+for the unknown~$y_i$.  The modification in SOR is that, instead
+of using~$y^{(1)}$ as the next estimate for~$y$, we use an
+interpolation~$ay^{(0)}+(1-a)y^{(1)}$ instead.
+
+Books have been written about the stability and convergence of all
+this, but I'm going to ignore that for now.  The initial goal is
+to find equilibrium order parameters by Gauss-Siegel.
+
+There are two complications.  First, the Gross-Pitaevskii problem
+is noninear.  On the left-hand side, we have~$A(y)y$ instead of
+just~$Ay$.  I'll deal with that by using~$A(y^{(0)})$ to
+calculate~$y^{(1)}$.  The obvious alternative would be to
+use~$\pmatrix{y^{(1)}₁&…&y^{(1)}_{i-i}&y^{(0)}_i&…&y^{(0)}_n}$ to
+compute~$y^{(1)}_i$.
+
+The more serious complication is the right-hand side.  Instead of
+a fixed target~$b$, I have to aim at a moving target~$μy$.  From
+one of Tapio's papers \cite{cpc-142-396}, it sounds like the answer
+is to fix~$μ$, solve for~$y$, find the particle number, update~$μ$,
+and keep trying until you get the right number of particles.  However,
+the problem~$(A-μI)y=0$ usually has as its only solution~$y=0$,
+which isn't much help.  I'll start by solving~$(A(y^{(0)})y =
+μy^{(0)}$ for~$y^{(1)}$, and update~$μ$ once that has converged.
+
+2019-07-09 Spectral derivatives
+
+When taking the spectral derivative of a whole field, it's more efficient to use Fourier transforms.  The Gauss-Seidel algorithm evaluates it one point at a time, so explicit derivative matrices win there.
+
+Trefethen derives the spectral derivative matrix for a special case, where the domain is~$[0,2π]$, the grid is~$x_j=2πj/N$, $j=1,2,⋯,N$, and~$N$ is even.The interpolating sinc function is
+$$p(x)={\sin(πx/h)\over (2π/h)\tan(x/2)},$$
+where~$h=2π/N$.  This results in Toeplitz derivative matrices, with first columns
+$$D_N=\pmatrix{0&-½\cot{1h\over 2}&½\cot{2h\over 2}&-½\cot{3h\over 2}&…}^{\rm T}$$
+and
+$$D_N^{(2)}=\pmatrix{-{π²\over 3h²}-{1\over6}&½\csc^2\left({1h\over 2}\right)&-½\csc^2\left({2h\over 2}\right)&…}^{\rm T}.$$
+The matrices have the same (anti)-symmetry as the derivative operators.
+
+For odd~$N$, the corresponding formulae (derived with the help of Matlab's symbolic toolbox) are
+$$p(x)={\sin(πx/h)\over (2π/h)\sin(x/2)},$$
+$$D_N=\pmatrix{0&-½\csc{1h\over 2}&½\csc{2h\over 2}&…}^{\rm T},$$
+and
+$$D_N^{(2)}=\pmatrix{-{π²\over 3h²}+{1\over12}&½\csc\left({1h\over 2}\right)\cot\left({1h\over 2}\right)&-½\csc\left({2h\over 2}\right)\cot\left({2h\over 2}\right)&…}^{\rm T}.$$
+
+If the functions~$f:[0,2π]→{\bf R}$ and $g:[0,L]→{\bf R}$ have the same samples at a grid of~$N$ points on their respective domains, the derivatives will satisfy~$g^{(n)}(x)=(2π/L)ⁿf^{(n)}(x)$, and the derivative matrices scale in proportion.  Where $h$~occurs in the formulae above, it should be interpreted as~$h=2π/N$, whatever the actual grid step.
+
 \bye
