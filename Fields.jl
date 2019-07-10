@@ -1,6 +1,8 @@
 module Fields
 
 using FFTW
+using ToeplitzMatrices
+using LinearAlgebra
 
 import AbstractFFTs.fft
 import AbstractFFTs.ifft
@@ -16,7 +18,7 @@ import Base.sin
 import Base.cos
 import Base.abs2
 
-export Field, XField, KField, grid, fft, ifft, sum, norm, apply_fields, apply_field
+export Field, XField, KField, grid, fft, ifft, sum, norm, apply_fields, apply_field, lmat
 
 struct XField
 	h	# 2 element vector with subtype of real
@@ -84,8 +86,39 @@ function apply_field(f, u::T) where {T <: Field}
 end
 
 # Integrals
+# TODO add these methods to Base.sum and Linalg.norm
 
 sum(u::XField) = prod(u.h)*sum(u.vals)
 norm(u::Field) = sqrt(sum(abs2(u)))
+
+# Derivatives
+
+"Spectral Laplacian matrix"
+function lmat(u::XField)
+	n1 = size(u.vals,1);  n2 = size(u.vals,2)
+	D1 = kron(Matrix(I,n2,n2), dmat1(u.h[1], n1))
+	D2 = kron(dmat1(u.h[2], n2), Matrix(I,n1,n1))
+	# show("D1 = $D1  D2 = $D2")
+	D1 + D2
+end
+
+function dmat1(h::Real, n::Integer)
+	j = 0:n-1
+	# formulae for domain [0, 2π] with integer wave numbers
+	if n == 1
+		return fill(0.,1,1)
+	elseif iseven(n)
+		rc = -1/2*(-1).^j.*csc.(j*π/n).^2
+		rc[1] = -n^2/12 - 1/6
+	else
+		rc = -1/2*(-1).^j.*csc.(j*π/n).*cot.(j*π/n)
+		rc[1] = -n^2/12 + 1/12
+	end
+	# show("n = $n h = $h rc = $rc")
+	# scale to [0, n*h]
+	rc *= (2π/n/h)^2
+	# show("scaled rc = $rc")
+	Toeplitz(rc,rc)
+end
 
 end
