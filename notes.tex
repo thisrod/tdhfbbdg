@@ -297,4 +297,17 @@ $$D_N^{(2)}=\pmatrix{-{π²\over 3h²}+{1\over12}&½\csc\left({1h\over 2}\right)
 
 If the functions~$f:[0,2π]→{\bf R}$ and $g:[0,L]→{\bf R}$ have the same samples at a grid of~$N$ points on their respective domains, the derivatives will satisfy~$g^{(n)}(x)=(2π/L)ⁿf^{(n)}(x)$, and the derivative matrices scale in proportion.  Where $h$~occurs in the formulae above, it should be interpreted as~$h=2π/N$, whatever the actual grid step.
 
+2019-07-10 SOP experiments
+
+I've experimented with successive over-relaxation, in the script {\tt working2.jl}.  I won't include any plots for now, because I hope to make Jupyter notebooks or some kind of {\tt publish()} before long.
+
+The first test is that I can solve~$Hψ=1·ψ₀$, where~$H$ is the 1D harmonic oscillator hamiltonian.  The known solution~$ψ₀$ is preserved by a single Gauss-Seidel step, and Gauss-Seidel converges geometrically, abeit slowly, with a residual around~$10^{-5}$ after 2000 steps.
+
+Since the answer is known in this case, the optimum SOP extrapolation parameter can be determined as the least squares solution to~$(ψ'-ψ)a=(ψ₀-ψ)$.  This gives very large answers, around 165, but that is consistent with Gauss-Seidel taking 400 steps to gain each digit.  Supposedly SOP is only ever stable for~$0<a<2$, and I've found that it's unstable for~$a>1$ in my experiments.  Something is odd there.
+
+With my current code, 2D Gauss-Seidel involves a~$10⁴×10⁴$ dense spectral derivative matrix, which isn't practical.  I know a way to rewrite it to exploit sparsity.  Imaginary time can evaluate the spectral derivatives by fourier transforms, and can do the 2D case.
+
+Inspecting the residual~$∥(H-E)ψ∥$ is a plausible way to choose the SOP extrapolation parameter, just like it can be used to choose the imaginary time step.
+
+
 \bye
