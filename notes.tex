@@ -253,9 +253,17 @@ then iterate over the grid~$x$, so that we currently have updated
 estimates~$y^{(1)}_j$ for~$1≤j<i$.  We now pick row~$i$, and solve
 the equation
 $$b_i = ∑_{j=1}^{i-1}a_{ij}y^{(1)}_j + a_{ii}y_i + ∑_{j=i+1}^{n}a_{ij}y^{(0)}_j$$
-for the unknown~$y_i$.  The modification in SOR is that, instead
-of using~$y^{(1)}$ as the next estimate for~$y$, we use an
-interpolation~$ay^{(0)}+(1-a)y^{(1)}$ instead.
+for the unknown~$y_i$.
+
+The modification in SOR is that, instead of using~$y^{(1)}$ as the
+next estimate for~$y$, we use an extrapolation~$ay^{(0)}+(1-a)y^{(1)}$
+instead.  There are two ways to do this.  The first, extrapolating
+the whole grid, is as written.  The second, pointwise extrapolation,
+takes updated estimates~$y^{(1)}_j$ for~$1≤j<i$ and old
+extimates~$y^{(0)}_j$ for~$i<j≤n$, solves for the unknown~$y_i$,
+and sets~$y_i^{(1)}=y_i^{(0)}+a(y_i-y_i^{(0)})$.  The latter is
+used in practice.  Applying a small extrapolation parameter~$a≈1.4$
+at every point can greatly accelerate convergence.
 
 Books have been written about the stability and convergence of all
 this, but I'm going to ignore that for now.  The initial goal is
@@ -309,5 +317,32 @@ With my current code, 2D Gauss-Seidel involves a~$10⁴×10⁴$ dense spectral d
 
 Inspecting the residual~$∥(H-E)ψ∥$ is a plausible way to choose the SOP extrapolation parameter, just like it can be used to choose the imaginary time step.
 
+2019-07-17 Progress on equilibrium order parameters
+
+The results of my Gauss-Seidel and imaginary time simulations are in last week's progress report to Tapio.  (TODO: copy it here.)  Since then, I've tired imaginary time with projection.  Projecting the~$\exp(-τ∇²)$ operator, by applying it then renormalising the state, made adaptive convergence marginally faster.  Projecting the~$N(x)$ operator made it significantly slower.  So that was a failure.
+
+The operator~$\exp(-τ∇²)$ is the solution to~$ψ_τ=-∇²ψ$.  I could do formally better by discretising in reciprocal space, solving the resulting system of ODEs with projection—the fourier transform is unitary—and applying the operator solution.  Since the speedup is marginal, that isn't worthwhile.
+
+That leaves SOP.  Tapio suggests that the usual extrapolation parameter is fixed and around 1.4.  That isn't a massive speedup, so for now I'm going to stick with Gauss-Seidel.  I'm working in 1D for the moment, because the bookkeeping for fast 2D is a bit fiddly.
+
+Gauss-Seidel solves the harmonic oscillator problem~$Hψ=E₀ψ₀$ reliably, albeit a bit slowly.  The next step is to solve $Hψ=E₀ψ$.  Choosing the initial value of~$ψ$ is tricky.  Obviously~$ψ₀$ is going to work, but I already know that.  (In the nonlinear problem, $ψ₀$~is a good choice, and I can see the solution converge to the repulsive order parameter.)
+
+I've tried initialising~$ψ$ to white noise, and the results are interesting.  Most of the time, the solution converges as in~{\tt resp190717a.pdf}.  However, occasionally, an initial condition is drawn where it diverges as in~{\tt resp190717b.pdf}.  This is wierd.  If there is a parasitic solution, it should be excited by almost every random initial condition.  Maybe I can defer figuring that out until after I'm getting repulsive order parameters.  I can abort any run where the residual increases, and restart with a different random initial condition.
+
+2019-07-18 Meeting Tapio
+
+The speedup in SOR comes from extrapolating at each point in the grid, as you run through a Gauss-Seidel step.  Doing the whole step and then extrapolating is much slower.
+
+For vortices, higher order finite differences are required to get accurate momentum near the vortex core.  Typically 19th order.  Why not go spectral with 150th order?  The boundary conditions are easier for finite differences.
+
+Boundary conditions for vortices should be zero, periodic does wierd things with the phase at the edge of the domain.
+
+The dynamics for the Bogoliubov~$u_j$ and~$v_j$ come from substituting any orthogonal modes into the mean-field Hamiltonian.  (Really?  Check that.) 
+
+2019-07-19 Chris Billington's code
+
+\item• The routine takes a {\tt boundary_mask} parameter, which excludes grid points from the update, so that their initial values serve as boundary conditions.  An $n+1$~point finite difference formula for~$D^{(n)}f$ is based on an~$n$th order polynomial.  Given~$f$, $Df$ through~$D^{(n-1)}f$ on the boundary, you have an~$n-1$th order Taylor polynomial.  Sampling this at~$n-1$ points outside the boundary plus one boundary point lets you solve for the first interior point.
+
+Billington's SOR code has lots of complicated parallel stuff.  However, the basic algorithm is just Gauss-Seidel with pointwise extrapolation.
 
 \bye
