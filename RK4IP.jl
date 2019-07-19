@@ -3,7 +3,7 @@ module RK4IP
 using Fields
 using LinearAlgebra
 
-export ∇², lexp, nlptl, advance, gauss_seidel_step, adapt_relax, ar_set
+export ∇², lexp, nlptl, advance, gauss_seidel_step, relax, adapt_relax, ar_set
 
 function ∇²(u)
 	v = fft(u)
@@ -27,6 +27,24 @@ function advance(ψ, D, N)
 	k₄ = N(D(ψ_I + k₃))
 	@assert 0.5*norm(ψ) > norm(k₁) + norm(k₂) + norm(k₃) + norm(k₄) 
 	D(ψ_I + (k₁ + 2(k₂+k₃))/6) + k₄/6
+end
+
+"step(x) returns next x and residual.  Fail after 10 increasing steps"
+function relax(step, x₀, R)
+	global relaxed_r
+	x = x₀; r = Inf
+	incg = 0
+	relaxed_r = Float64[step(x₀)[2]]
+	for j = 1:1000
+		x, r₁ = step(x)
+		push!(relaxed_r, r₁)
+		r₁ < r || (incg += 1)
+		incg < 10 || break
+		r₁ > R || (return x)
+		r = r₁
+	end
+	println("WARNING: relax failed to converge")
+	x
 end
 
 ar_gap = 15
