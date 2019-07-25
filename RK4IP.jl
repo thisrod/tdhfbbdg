@@ -25,7 +25,9 @@ function advance(ψ, D, N)
 	k₂ = N(ψ_I + k₁/2)
 	k₃ = N(ψ_I + k₂/2)
 	k₄ = N(D(ψ_I + k₃))
-	@assert 0.5*norm(ψ) > norm(k₁) + norm(k₂) + norm(k₃) + norm(k₄) 
+	if 0.5*norm(ψ) < norm(k₁) + norm(k₂) + norm(k₃) + norm(k₄)
+		println("WARNING: rk4ip increment is a large fraction of value")
+	end
 	D(ψ_I + (k₁ + 2(k₂+k₃))/6) + k₄/6
 end
 
@@ -34,12 +36,12 @@ function relax(step, x₀, R)
 	global relaxed_r
 	x = x₀; r = Inf
 	incg = 0
-	relaxed_r = Float64[step(x₀)[2]]
-	for j = 1:1000
+	relaxed_r = Float64[]
+	for j = 1:5000
 		x, r₁ = step(x)
 		push!(relaxed_r, r₁)
 		r₁ < r || (incg += 1)
-		incg < 10 || break
+		incg < 500 || break
 		r₁ > R || (return x)
 		r = r₁
 	end
@@ -49,6 +51,7 @@ end
 
 ar_gap = 15
 ar_factor = 2
+relaxed_r = nothing
 
 function ar_set(gap, factor)
 	global ar_gap, ar_factor
@@ -70,15 +73,15 @@ function adapt_relax(step, x₀, a₀, R)
 	
 	# TODO find a way to keep track of μ as well as the residual
 	
-	# TODO adjust a continuously by extrapolation
-	
 	global relaxed_a, relaxed_r
 	x = x₀; a = a₀; r = Inf
-	relaxed_a = Float64[a₀]
+	relaxed_a = Float64[]
 	relaxed_r = Float64[step(x₀,a₀)[2]]
 	for i = 1:div(1000,ar_gap)
+		push!(relaxed_a, a)
 		for j = 1:ar_gap
 			x, r₁ = step(x,a)
+			push!(relaxed_r, r₁)
 			r₁ < r || break
 			r₁ > R || return x
 			r = r₁
@@ -87,8 +90,6 @@ function adapt_relax(step, x₀, a₀, R)
 		trials = [a/ar_factor, a, a*ar_factor]
 		rs = [step(x,b)[2] for b = trials]
 		a = trials[argmin(rs)]
-		push!(relaxed_a, a)
-		push!(relaxed_r, r)
 	end
 	println("WARNING: adapt_relax failed to converge")
 	x
