@@ -345,4 +345,12 @@ The dynamics for the Bogoliubov~$u_j$ and~$v_j$ come from substituting any ortho
 
 Billington's SOR code has lots of complicated parallel stuff.  However, the basic algorithm is just Gauss-Seidel with pointwise extrapolation.
 
+2019-07-19 Gauss-Seidel and eigenvalues
+
+There's a subtlety which makes Gauss-Seidel good for solving nonlinear eigenproblems, but not for linear ones.
+
+In the first instance, Gauss-Seidel solves a system of linear equations, $Ax=b$.  With a known eigenvalue~$λ₀$, the right-hand side can be iterated along with~$x$, and it turns out to solve~$Ax=λ₀x$ pretty well.  But there is a problem when $λ$~is unknown: if we guess~$λ$ wrong, the problem~$Ax=λx$ has no solution.  I don't know what Gauss-Seidel does in that case, but I'm guessing that it isn't pretty.
+
+Nonlinearity makes it all easier!  Whatever guess is made for~$μ$, the problem~$L(x)x=μx$ has a solution.  That solution might not have the particle number that I want, but it still exists.  As the relaxation converges, I can adjust~$μ$ to get the number of particles that I want.
+
 \bye
