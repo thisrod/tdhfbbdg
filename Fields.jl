@@ -22,13 +22,13 @@ import LinearAlgebra.norm
 export Field, XField, KField, grid, fft, ifft, sum, norm, apply_fields, apply_field, lmat
 
 struct XField
-	h	# 2 element vector with subtype of real
-	vals	# figure out how specify a 2D array of a subtype of number
+	h::Tuple{Float64,Float64}
+	vals::Array{<:Number,2}
 end
 
 struct KField
-	h	# this is always the step for the X grid
-	vals
+	h::Tuple{Float64,Float64}	# this is always the step for the X grid
+	vals::Array{<:Number,2}
 end
 
 function fft(u::XField)
