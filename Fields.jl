@@ -7,6 +7,7 @@ using LinearAlgebra
 import AbstractFFTs.fft
 import AbstractFFTs.ifft
 import Base.sum
+import Base.diff
 import Base.*
 import Base./
 import Base.+
@@ -19,7 +20,9 @@ import Base.cos
 import Base.abs2
 import LinearAlgebra.norm
 
-export Field, XField, KField, grid, fft, ifft, sum, norm, apply_fields, apply_field, lmat
+export Field, XField, KField, grid, fft, ifft, sum, diff, norm, apply_fields, apply_field, lmat
+
+# TODO make Field an AbstractArray
 
 struct XField
 	h::Tuple{Float64,Float64}
@@ -92,6 +95,16 @@ sum(u::XField) = prod(u.h)*sum(u.vals)
 norm(u::Field) = sqrt(sum(abs2(u)))
 
 # Derivatives
+
+"Finite difference derivative at indexed point"
+function diff(u::XField, dim, order, ixs)
+	@assert order == 2
+	# pad periodic boundaries
+	vals = u.vals[[end; 1:end; 1], [end; 1:end; 1]]
+	ixs = map(x->x+1, ixs)
+	step = Tuple(dim .== 1:2)
+	(vals[ixs.-step...] - 2vals[ixs...] + vals[ixs.+step...])/u.h[dim]^2
+end
 
 "Spectral Laplacian matrix"
 function lmat(u::XField)

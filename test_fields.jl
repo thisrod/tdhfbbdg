@@ -64,4 +64,14 @@ end
 	@test L*fxy.vals[:] ≈ -5fxy.vals[:]
 end
 
+@testset "Finite difference derivatives" begin
+
+	# TODO test boundary
+
+	R = XField((0.1,1), ones(51,1));
+	x,y = grid(R)
+	@test diff(x^2, 1, 2, (26,1)) ≈ 2
+
+end
+
 end
