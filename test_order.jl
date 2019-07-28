@@ -8,19 +8,18 @@ using RK4IP
 
 x, y = begin
 	h = 0.1;  l = 15;  n = ceil(Int, l/h)
-	R = XField([h, h], ones(n, n))
+	R = XField((h, h), ones(n, n))
 	grid(R)
 end
 
 @testset "lexp solves the 2D heat equation df/dt = ∇²f" begin
 
 	f(t,x) = exp(-x^2/4t)/√t
-	f(t,x,y) = f(t,x)*f(t,y)
 	
-	f₀ = apply_fields((x, y) -> f(0.5, x, y), x, y)
+	f₀ = f.(0.5,x).*f.(0.5,y)
 	τ = 0.1
 	f₁ = lexp(f₀,τ)
-	f₂ = apply_fields((x, y) -> f(0.5 + τ, x, y), x, y)
+	f₂ = f.(0.5+τ, x).*f.(0.5+τ, y)
 	
 	@test f₁.vals ≈ f₂.vals
 end
@@ -44,7 +43,7 @@ H(ψ) = -∇²(ψ) + V*ψ
 	ψ = advance(φ₀,D,N);  ψ /= norm(ψ)
 	@test ψ.vals ≈ φ₀.vals
 	
-	ψ₀ = φ₀*XField([h, h], 1 .+ 0.1*randn(n, n))
+	ψ₀ = φ₀*XField((h, h), 1 .+ 0.1*randn(n, n))
 	ψ = advance(ψ₀,D,N);  ψ /= norm(ψ)
 	@test norm(ψ-φ₀) < norm(ψ-ψ₀)
 end
@@ -78,7 +77,7 @@ end
 @testset "harmonic oscillator ground state stable under Gauss-Seidel" begin
 	x1, y1 = begin
 		h = 0.1;  l = 15;  n = ceil(Int, l/h)
-		R = XField([h, 1], ones(n, 1))
+		R = XField((h, 1), ones(n, 1))
 		grid(R)
 	end
 	

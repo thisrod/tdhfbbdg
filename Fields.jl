@@ -6,33 +6,71 @@ using LinearAlgebra
 
 import AbstractFFTs.fft
 import AbstractFFTs.ifft
+import Base: size, getindex, setindex!, similar, BroadcastStyle
+import Base.Broadcast: AbstractArrayStyle, Broadcasted
 import Base.sum
 import Base.diff
-import Base.*
-import Base./
-import Base.+
-import Base.-
-import Base.^
-import Base.conj
-import Base.exp
-import Base.sin
-import Base.cos
-import Base.abs2
 import LinearAlgebra.norm
 
-export Field, XField, KField, grid, fft, ifft, sum, diff, norm, apply_fields, apply_field, lmat
+export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
 
-# TODO make Field an AbstractArray
-
-struct XField
+struct XField{T<:Number} <: AbstractArray{T,2}
 	h::Tuple{Float64,Float64}
-	vals::Array{<:Number,2}
+	vals::Array{T,2}
 end
 
 struct KField
 	h::Tuple{Float64,Float64}	# this is always the step for the X grid
 	vals::Array{<:Number,2}
 end
+
+Field = Union{XField, KField}
+
+# Accept Real grid steps
+function T(h::Tuple{Real, Real}, vals::Array{<:Number,2}) where T <: Field
+	T(Tuple(convert(Float64, x) for x in h), vals)
+end
+
+# AbstractArray primitives
+# TODO metaprogram these
+
+size(U::Field) = size(U.vals)
+getindex(U::Field, I...) = getindex(U.vals, I...)
+setindex!(U::Field, x, I...) = setindex!(U.vals, x, I...)
+function similar(U::F, ::Type{T}, dims::Dims) where {F<:Field, T}
+	F(U.h, similar(U.vals, T, dims))
+end
+
+# Broadcasting
+
+struct XFieldStyle <: AbstractArrayStyle{2} end
+BroadcastStyle(::Type{<:XField}) = XFieldStyle()
+XFieldStyle(::Val{1}) = XFieldStyle()
+XFieldStyle(::Val{2}) = XFieldStyle()
+XFieldStyle(::Val{N}) where N = error("Fields broadcast with rank 3 array")
+
+function similar(bc::Broadcasted{XFieldStyle}, ::Type{T}) where T
+	XField(find_h(bc), similar(Array{T}, axes(bc)))
+end
+
+find_h(x) = nothing
+find_h(bc::Base.Broadcast.Broadcasted) = find_h(bc.args)
+function find_h(args::Tuple)
+	if isempty(args)
+		nothing
+	else
+		promote_h(find_h(args[1]), find_h(Base.tail(args)))
+	end
+end
+find_h(U::XField) = U.h
+
+promote_h(::Nothing, ::Nothing) = nothing
+promote_h(h, ::Nothing) = h
+promote_h(::Nothing, h) = h
+promote_h(h, l) = h == l ? h : error("Grids step mismatch in broadcast")
+
+# Fourier transforms
+# TODO make these L² unitary
 
 function fft(u::XField)
 	KField(u.h, fft(u.vals))
@@ -59,35 +97,6 @@ function grid(u::KField)
 	kx, ky
 end
 
-# Arithmetic on fields
-# TODO override broadcasting
-
-Field = Union{XField, KField}
-
-*(u::Field, v::Field) = apply_fields((*), u, v)
-+(u::Field, v::Field) = apply_fields((+), u, v)
--(u::Field) = apply_field((-), u)
--(u::Field, v::Field) = apply_fields((-), u, v)
-exp(u::Field) = apply_field(exp, u)
-abs2(u::Field) = apply_field(abs2, u)
-sin(u::Field) = apply_field(sin, u)
-cos(u::Field) = apply_field(cos, u)
-conj(u::Field) = apply_field(conj, u)
-
-*(c::Number, u::T) where {T <: Field} = T(u.h, c.*u.vals)
-*(u::T, c::Number) where {T <: Field} = c*u
-/(u::T, c::Number) where {T <: Field} = T(u.h, u.vals./c)
-^(u::T, c::Number) where {T <: Field} = T(u.h, u.vals.^c)
-
-# TODO varargs apply_field, deprecate apply_fields
-function apply_fields(op, u::T, v::T) where {T <: Field}
-	@assert u.h == v.h
-	T(u.h, op.(u.vals, v.vals))
-end
-
-function apply_field(f, u::T) where {T <: Field}
-	T(u.h, f.(u.vals))
-end
 
 # Integrals
 
