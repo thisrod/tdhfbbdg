@@ -34,8 +34,8 @@ end
 	@test χ isa KField
 	@test copy(χ) isa KField
 	@test cos.(χ) isa KField
-	@test χ.+Y isa KField
-	@test χ+Y isa KField
+	@test χ.+fft(Y) isa KField
+	@test χ+fft(Y) isa KField
 	@test cos.(χ).^2 isa KField
 	
 end

@@ -19,20 +19,23 @@ struct XField{T<:Number} <: AbstractArray{T,2}
 	vals::Array{T,2}
 end
 
-struct KField
+struct KField{T<:Number} <: AbstractArray{T,2}
 	h::Tuple{Float64,Float64}	# this is always the step for the X grid
-	vals::Array{<:Number,2}
+	vals::Array{T,2}
 end
 
 Field = Union{XField, KField}
 
 # Accept Real grid steps
-function T(h::Tuple{Real, Real}, vals::Array{<:Number,2}) where T <: Field
-	T(Tuple(convert(Float64, x) for x in h), vals)
+function XField(h::Tuple{Real, Real}, vals::Array{<:Number,2})
+	XField(Tuple(convert(Float64, x) for x in h), vals)
+end
+
+function KField(h::Tuple{Real, Real}, vals::Array{<:Number,2})
+	KField(Tuple(convert(Float64, x) for x in h), vals)
 end
 
 # AbstractArray primitives
-# TODO metaprogram these
 
 size(U::Field) = size(U.vals)
 getindex(U::Field, I...) = getindex(U.vals, I...)
@@ -42,15 +45,18 @@ function similar(U::F, ::Type{T}, dims::Dims) where {F<:Field, T}
 end
 
 # Broadcasting
+# TODO reimplement FieldStyle to be generic over XField and KField
 
-struct XFieldStyle <: AbstractArrayStyle{2} end
-BroadcastStyle(::Type{<:XField}) = XFieldStyle()
-XFieldStyle(::Val{1}) = XFieldStyle()
-XFieldStyle(::Val{2}) = XFieldStyle()
-XFieldStyle(::Val{N}) where N = error("Fields broadcast with rank 3 array")
+struct FieldStyle{F} <: AbstractArrayStyle{2} where F<:Field end
+#BroadcastStyle(::Type{F}) where F<:Field = FieldStyle{F}
+FieldStyle{F}(::Val{1}) where F = FieldStyle{F}()
+FieldStyle{F}(::Val{2}) where F = FieldStyle{F}()
+FieldStyle{F}(::Val{N}) where {F,N} = error("Field broadcast with rank 3 array")
 
-function similar(bc::Broadcasted{XFieldStyle}, ::Type{T}) where T
-	XField(find_h(bc), similar(Array{T}, axes(bc)))
+BroadcastStyle(::Type{F}) where F<:Field = Broadcast.ArrayStyle{F}()
+
+function similar(bc::Broadcasted{Broadcast.ArrayStyle{F}}, ::Type{T}) where {F,T}
+	F(find_h(bc), similar(Array{T}, axes(bc)))
 end
 
 find_h(x) = nothing
@@ -62,7 +68,7 @@ function find_h(args::Tuple)
 		promote_h(find_h(args[1]), find_h(Base.tail(args)))
 	end
 end
-find_h(U::XField) = U.h
+find_h(U::Field) = U.h
 
 promote_h(::Nothing, ::Nothing) = nothing
 promote_h(h, ::Nothing) = h
