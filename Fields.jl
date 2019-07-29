@@ -14,25 +14,25 @@ import LinearAlgebra.norm
 
 export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
 
-struct XField{T<:Number} <: AbstractArray{T,2}
+# TODO reinstate parametric eltype, make broadcasting promote the eltype
+struct XField <: AbstractArray{Complex{Float64},2}
 	h::Tuple{Float64,Float64}
-	vals::Array{T,2}
+	vals::Array{Complex{Float64},2}
 end
 
-struct KField{T<:Number} <: AbstractArray{T,2}
+struct KField <: AbstractArray{Complex{Float64},2}
 	h::Tuple{Float64,Float64}	# this is always the step for the X grid
-	vals::Array{T,2}
+	vals::Array{Complex{Float64},2}
 end
 
 Field = Union{XField, KField}
 
-# Accept Real grid steps
 function XField(h::Tuple{Real, Real}, vals::Array{<:Number,2})
-	XField(Tuple(convert(Float64, x) for x in h), vals)
+	XField(Tuple{Float64,Float64}(h), Array{Complex{Float64},2}(vals))
 end
 
 function KField(h::Tuple{Real, Real}, vals::Array{<:Number,2})
-	KField(Tuple(convert(Float64, x) for x in h), vals)
+	KField(Tuple{Float64,Float64}(h), Array{Complex{Float64},2}(vals))
 end
 
 # AbstractArray primitives
@@ -107,7 +107,8 @@ end
 # Integrals
 
 sum(u::XField) = prod(u.h)*sum(u.vals)
-norm(u::Field) = sqrt(sum(abs2(u)))
+# TODO remove real when parametric eltypes work again
+norm(u::Field) = sqrt(real(sum(abs2.(u))))
 
 # Derivatives
 

@@ -45,6 +45,7 @@ end
 	R = XField((h, 1), ones(30,1))
 	x, y = grid(R)
 	@test sum(cos.(x).^2) ≈ π/2
+	@test norm(cos.(x)) ≈ sqrt(π/2)
 end
 
 @testset "spectral Laplacian matrix" begin

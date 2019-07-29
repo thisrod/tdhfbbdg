@@ -3,19 +3,19 @@ module RK4IP
 using Fields
 using LinearAlgebra
 
-export ∇², lexp, nlptl, advance, gauss_seidel_step, relax, adapt_relax, ar_set
+export ∇², lexp, nlptl, advance, gauss_seidel_step, relax, adapt_relax, ar_set, sor_step
 
 function ∇²(u)
 	v = fft(u)
 	kx, ky = grid(v)
-	ifft(-(kx^2+ky^2) * v)
+	ifft(-(kx.^2+ky.^2) .* v)
 end
 
 # exponential Laplacian.  Returns exp(τ∇²) u
 function lexp(u, τ)
 	v = fft(u)
 	kx, ky = grid(v)
-	ifft(exp(-τ*(kx^2+ky^2)) * v)
+	ifft(exp.(-τ*(kx.^2+ky.^2)) .* v)
 end
 
 # Algorithm B.10 of Caradoc-Davies
@@ -107,6 +107,19 @@ function gauss_seidel_step(A, b, y₀)
 	for i = eachindex(y)
 		y[i] = 0
 		y[i] = (b[i]-A[i,:]⋅y)/A[i,i]
+	end
+	y
+end
+
+"""In the linear case, f(x,i) = (A*x)[i]"""
+function sor_step(f, b, a, y₀)
+	y = copy(y₀)
+	for i = eachindex(y)
+		yi₀ = y[i]
+		ei = zero(y₀);  ei[i] = 1;
+		y[i] = 0
+		yi = (b[i]-f(y,i))/f(ei,i)
+		y[i] = yi₀ + a*(yi-yi₀)
 	end
 	y
 end
