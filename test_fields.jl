@@ -93,7 +93,8 @@ end
 
 	R = XField((0.1,1), ones(51,1));
 	x,y = grid(R)
-	@test diff(x.^2, 1, 2, (26,1)) ≈ 2
+	@test diff((26,1), x.^2, 1, 1) ≈ 2
+	@test diff(x.^2, 1, 1)[26,1] == diff((26,1), x.^2, 1, 1)
 
 end
 

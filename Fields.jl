@@ -113,13 +113,24 @@ norm(u::Field) = sqrt(real(sum(abs2.(u))))
 # Derivatives
 
 "Finite difference derivative at indexed point"
-function diff(u::XField, dim, order, ixs)
-	@assert order == 2
+function diff(I, u::XField, dims...)
+	# NYI
+	@assert length(dims) == 2
+	@assert dims[1] == dims[2]
 	# pad periodic boundaries
 	vals = u.vals[[end; 1:end; 1], [end; 1:end; 1]]
-	ixs = map(x->x+1, ixs)
-	step = Tuple(dim .== 1:2)
-	(vals[ixs.-step...] - 2vals[ixs...] + vals[ixs.+step...])/u.h[dim]^2
+	I isa CartesianIndex && (I = Tuple(I))
+	I = map(x->x+1, I)
+	step = Tuple(dims[1] .== 1:2)
+	(vals[I.-step...] - 2vals[I...] + vals[I.+step...])/u.h[dims[1]]^2
+end
+
+function diff(u::XField, dims...)
+	du = similar(u)
+	for i = eachindex(u)
+		du[i] = diff(i, u, dims...)
+	end
+	du
 end
 
 "Spectral Laplacian matrix"
