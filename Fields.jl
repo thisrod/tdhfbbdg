@@ -114,15 +114,19 @@ norm(u::Field) = sqrt(real(sum(abs2.(u))))
 
 "Finite difference derivative at indexed point"
 function diff(I, u::XField, dims...)
-	# NYI
-	@assert length(dims) == 2
-	@assert dims[1] == dims[2]
+	# Implementation restrictions
+	@assert length(dims) ≤ 2
+	@assert all(j->j==dims[1], dims)
 	# pad periodic boundaries
 	vals = u.vals[[end; 1:end; 1], [end; 1:end; 1]]
 	I isa CartesianIndex && (I = Tuple(I))
 	I = map(x->x+1, I)
 	step = Tuple(dims[1] .== 1:2)
-	(vals[I.-step...] - 2vals[I...] + vals[I.+step...])/u.h[dims[1]]^2
+	if length(dims) == 2
+		(vals[I.-step...] - 2vals[I...] + vals[I.+step...])/u.h[dims[1]]^2
+	else
+		(vals[I.+step...] - vals[I.-step...])/2u.h[dims[1]]
+	end
 end
 
 function diff(u::XField, dims...)
