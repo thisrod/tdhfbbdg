@@ -4,6 +4,7 @@ module FieldsTest
 
 include("Fields.jl")
 using .Fields
+using .Fields: linop_matrix
 using Test
 
 @testset "fields have the expected grids" begin
@@ -98,6 +99,18 @@ end
 	@test diff((26,1), x.^2, 1, 1) ≈ 2
 	@test diff(x.^2, 1, 1)[26,1] == diff((26,1), x.^2, 1, 1)
 
+end
+
+@testset "derivative matrices" begin
+	R = XField((0.2, π), zeros(3,5))
+	
+	function ∇²(u)
+		v = fft(u)
+		kx, ky = grid(v)
+		ifft(-(kx.^2+ky.^2) .* v)
+	end
+	
+	@test lmat(R) ≈ linop_matrix(∇², R)
 end
 
 end

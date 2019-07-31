@@ -10,7 +10,7 @@ import Base: size, getindex, setindex!, similar, BroadcastStyle
 import Base.Broadcast: AbstractArrayStyle, Broadcasted
 import Base.sum
 import Base.diff
-import LinearAlgebra.norm
+import LinearAlgebra: norm, Matrix
 
 export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
 
@@ -101,6 +101,23 @@ function grid(u::KField)
 	kx = KField(h, repeat(K(h[1], n[1]), 1, n[2]))
 	ky = KField(h, repeat(K(h[2], n[2])', n[1], 1))
 	kx, ky
+end
+
+# matrices for linear operators
+# TODO make derivative operators a callable object, with a constructor Matrix(::LinOp)
+
+function linop_matrix(D, F::XField)
+	# The derivative of e_i goes in the ith column of the matrix
+	A = fill(Complex(NaN), length(F), length(F))
+	ei = zero(F)
+	j = 1
+	for i = eachindex(ei)
+		ei[i] = 1
+		A[:,j] = D(ei).vals[:]
+		ei[i] = 0
+		j += 1
+	end
+	A
 end
 
 
