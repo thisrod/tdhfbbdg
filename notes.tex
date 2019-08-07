@@ -373,4 +373,52 @@ The SHO modes are real, with~$∥u∥$ thousands of times larger than~$∥v∥$.
 
 Also, the numerical ground state has less energy than the samples of the exact ground state.
 
+2019-07-31 Meeting Tapio
+
+Imposing a wave number cutoff on a massless Bose field causes the particles to have a mass.  This means that, when the BdG problem is solved on a grid, the frequency of the condensate sound wave mode is not exactly zero.  This is supposedly analogous to photons gaining mass when they're trapped in a cavity.
+
+When a classically integrable system is quantised, its energy levels tend to cluster, and the distribution of differences to the nearest level is heavy around zero.  Chaos manifests as anti-bunching, so that the distribution of differences is broader.  See {\tt https://doi.org/10.1063/1.2062917}.
+
+Classical chaos can be seen as every trajectory being dense in phase space, unlike the orbits of integrable systems.  When an orbit intersects itself, there are only two concurrent trajectories.  When a chaotic trajectory intersects itself, there are many.  Two interfering waves produce interference fringes, but three produce vortices.  Tapio has a hypothesis that a semi-classical wave packet gets split on either side of these vortices, then the two parts go on wildly different trajectories.  This is the quantum mechanism for the exponential divergence of the classical trajectories.
+
+The Bogoliubov transformation diagonalises the condensate dynamics exactly.  My task is to treat the “second order” dynamics caused by the non-condensate particles.  This is apparently not second order pertubation theory in the usual sense, but there's a fancy Russian name for it.
+
+2019-08-05 Julia notes
+
+There is a {\tt JuliaFormatter.jl} inspired by {\tt gofmt}.
+
+{\tt ClusterManager.jl} supports SLURM.
+
+There is a package {\tt ComplexPhasePortrait} to display phase as colour.  This outputs an array of {\tt ColorTypes.RGB} objects, and it isn't clear how to get that displayed on screen.
+
+The {\tt Compose} library is basically a backend for {\tt Gadfly}.
+
+There is a {\tt ::Val\{N\}} method selector that isn't documented anywhere.  It seems to work for integers and symbols.
+
+The {\tt JuliaGraphics} project does what it says.
+
+2019-08-06 Non-condensate density corrections
+
+When a condensate is held in a harmonic trap, its sound wave modes have a small~$v$ component and~$∥u∥²≈1$.  This means that there is almost no Bogoliubov squeezing.  There's a set of atomic orbitals which very nearly diagonalise the interacting Hamiltonian, despite the repulsion.  For the repulsion strength~$C=1$ and chemical potential~$μ=2$ that I'm using, there is only~$0.14$ particle in the condensate, so the repulsion is small.
+
+Increasing~$μ$ to 3 doesn't change the kinetic and trap energy much, but it adds enough particles to give a repulsion energy around 1.
+
+My current plan is to work with {\tt Plots.jl} and whatever backend works for PDF, but put some time in to developing and documenting Gadfly and Compose.  Could do a MetaPost backend, which exports the data and leaves you to define some macros to draw it.
+
+2019-08-07 Meeting Tapio
+
+Bogoliubov time evolution has two parts.  First, the modes evolve in time in a way that is derived in the yellow BEC\ book.  Secondly, this evolution changes the distribution of quasiparticle energies, putting the condensate out of thermal equilibrium.  Therefore the occupations of the modes evolve too.
+
+There are a couple of science goals to this project.  An initial one is to find out how the mass of a vortex, in the classical dynamics model, depends on the radius at which it is orbiting the condensate.  There is a “buoyancy force” on the vortex, pushing it in the direction of lower atomic density, towards the edge of the condensate.  Its mass can be determined from the speed at which it orbits.  This is what the ARC has been told we will do.
+
+The eventual goal is to run these simulations with fermions, and work with Chris and the two-dimensional Dyscope.
+
+The Bogoliubov approximation has several refinements.  There is the basic version, where the repulsion from uncondensed atoms is simply ignored.  This is “gapless”, in the sense that the condensate quasiparticle mode has zero energy.  There is some theorem of QFT which requires that.
+
+The next step is the Hartree-Fock-Bogoliubov approximation, where the uncondensed atoms are treated in a way that is purportedly consistent to second order.  Equation~4 of \cite{prb-53-9341} is supposedly inspired by Wick's theorem, but it isn't rigorous.  The resulting theory has a gap in its quasiparticle spectrum.  Tapio claims that there are some higher order Belaiev(sp ?) modes, and the gap occurs because the HFB anomalous density~$〈δ\hat ψ²〉$ only accounts for some of these modes and not others.  I don't understand that argument yet.
+
+The intermediate step is the Popov approximation, where the anomalous density is set to zero.  In principle, this is less accurate than the full HFB approximation, but it is guaranteed to be gapless.  That makes it more accurate for dynamics work.
+
+Periodic boundary conditions are really bad for rotating condensates.  The periodic cells need to rotate in opposite senses at the edges, and they get stuck like a rectangular grid of gears all trying to rotate the same way.  This distorts the modes.
+
 \bye
