@@ -9,7 +9,7 @@ using Test
 
 @testset "fields have the expected grids" begin
 	h = 0.2
-	U = XField((h, h), ones(3,4))
+	U = XField{Float64}((h, h), ones(3,4))
 	X, Y = grid(U);
 	
 	x = [-0.2, 0, 0.2];
@@ -19,26 +19,43 @@ using Test
 	@test Y.vals ≈ repeat(y, 3, 1)
 end
 
+@testset "Field subtypes" begin
+	X = XField((0.1, 1), ones(Int,3,1))
+	Y = fft(X)
+	
+	@test X isa XField{Int}
+	@test X isa XField
+	@test X isa Field{Int}
+	@test X isa Field
+	@test Y isa KField{<:Complex}
+	@test Y isa Field{eltype(Y)}
+	@test Y isa Field
+end
+
 @testset "type stability in broadcasting" begin
 	h = 0.2
-	U = XField((h, h), ones(3,4))
-	X, Y = grid(U);
+	X = XField((h, h), ones(Int,3,4))
+	Y = XField((h, h), ones(Float64,3,4))
 	
-	@test X isa XField
-	@test copy(X) isa XField
-	@test cos.(X) isa XField
-	@test X.+Y isa XField
-	@test X+Y isa XField
-	@test cos.(X).^2 isa XField
+	@test X isa XField{Int}
+	@test Y isa XField{Float64}
+	@test copy(X) isa typeof(X)
+	@test X./2 isa XField{<:Real}
+	@test cos.(X) isa XField{<:Real}
+	@test cos.(X).^2 isa XField{<:Real}
+	@test X+X isa typeof(X)
+	@test Y+Y isa typeof(Y)
+	@test X.+Y isa typeof(Y)
+	@test X+Y isa typeof(Y)
 	
-	χ = fft(X)
-	@test χ isa KField
-	@test copy(χ) isa KField
-	@test cos.(χ) isa KField
-	@test χ.+fft(Y) isa KField
-	@test χ+fft(Y) isa KField
-	@test cos.(χ).^2 isa KField
-	
+	χ = fft(Y)
+	@test χ isa KField{Complex{Float64}}
+	@test copy(χ) isa typeof(χ)
+	@test cos.(χ) isa typeof(χ)
+	@test χ.+fft(X) isa KField
+	@test χ+fft(X) isa KField
+	@test cos.(χ).^2 isa typeof(χ)
+	@test abs2.(χ) isa KField{<:Real}
 end
 
 @testset "integral of cos^2 with single-point axis" begin

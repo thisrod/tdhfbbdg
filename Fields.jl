@@ -14,25 +14,30 @@ import LinearAlgebra: norm, Matrix
 
 export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
 
-# TODO reinstate parametric eltype, make broadcasting promote the eltype
-struct XField <: AbstractArray{Complex{Float64},2}
+struct XField{T<:Number} <: AbstractMatrix{T}
 	h::Tuple{Float64,Float64}
-	vals::Array{Complex{Float64},2}
+	vals::Matrix{T}
 end
 
-struct KField <: AbstractArray{Complex{Float64},2}
+fieldtypeof(u::XField) = XField
+fieldtypeof(::Type{XField{T}}) where T = XField
+
+struct KField{T<:Number} <: AbstractMatrix{T}
 	h::Tuple{Float64,Float64}	# this is always the step for the X grid
-	vals::Array{Complex{Float64},2}
+	vals::Matrix{T}
 end
 
-Field = Union{XField, KField}
+fieldtypeof(u::KField) = KField
+fieldtypeof(::Type{KField{T}}) where T = KField
 
-function XField(h::Tuple{Real, Real}, vals::Array{<:Number,2})
-	XField(Tuple{Float64,Float64}(h), Array{Complex{Float64},2}(vals))
+Field{T} = Union{XField{T}, KField{T}} where T
+
+function XField(h::Tuple{Real, Real}, vals::Matrix)
+	XField(Tuple{Float64,Float64}(h), vals)
 end
 
-function KField(h::Tuple{Real, Real}, vals::Array{<:Number,2})
-	KField(Tuple{Float64,Float64}(h), Array{Complex{Float64},2}(vals))
+function KField(h::Tuple{Real, Real}, vals::Matrix)
+	KField(Tuple{Float64,Float64}(h), vals)
 end
 
 # AbstractArray primitives
@@ -40,12 +45,11 @@ end
 size(U::Field) = size(U.vals)
 getindex(U::Field, I...) = getindex(U.vals, I...)
 setindex!(U::Field, x, I...) = setindex!(U.vals, x, I...)
-function similar(U::F, ::Type{T}, dims::Dims) where {F<:Field, T}
-	F(U.h, similar(U.vals, T, dims))
+function similar(U::Field, ::Type{T}, dims::Dims) where T
+	fieldtypeof(U){T}(U.h, similar(U.vals, T, dims))
 end
 
 # Broadcasting
-# TODO reimplement FieldStyle to be generic over XField and KField
 
 struct FieldStyle{F} <: AbstractArrayStyle{2} where F<:Field end
 #BroadcastStyle(::Type{F}) where F<:Field = FieldStyle{F}
@@ -53,10 +57,10 @@ FieldStyle{F}(::Val{1}) where F = FieldStyle{F}()
 FieldStyle{F}(::Val{2}) where F = FieldStyle{F}()
 FieldStyle{F}(::Val{N}) where {F,N} = error("Field broadcast with rank 3 array")
 
-BroadcastStyle(::Type{F}) where F<:Field = Broadcast.ArrayStyle{F}()
+BroadcastStyle(::Type{F}) where F<:Field = Broadcast.ArrayStyle{fieldtypeof(F)}()
 
-function similar(bc::Broadcasted{Broadcast.ArrayStyle{F}}, ::Type{T}) where {F,T}
-	F(find_h(bc), similar(Array{T}, axes(bc)))
+function similar(bc::Broadcasted{Broadcast.ArrayStyle{F}}, ::Type{T}) where {F<:Field,T}
+	F{T}(find_h(bc), similar(Array{T}, axes(bc)))
 end
 
 find_h(x) = nothing
