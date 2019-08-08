@@ -135,7 +135,10 @@ function diff(I, u::XField, dims...)
 	@assert length(dims) ≤ 2
 	@assert all(j->j==dims[1], dims)
 	# pad periodic boundaries
-	vals = u.vals[[end; 1:end; 1], [end; 1:end; 1]]
+	# vals = u.vals[[end; 1:end; 1], [end; 1:end; 1]]
+	# No, set zero boundaries
+	vals = zeros(eltype(u), size(u).+2)
+	vals[2:end-1, 2:end-1] = u.vals
 	I isa CartesianIndex && (I = Tuple(I))
 	I = map(x->x+1, I)
 	step = Tuple(dims[1] .== 1:2)
