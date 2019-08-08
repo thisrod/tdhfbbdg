@@ -9,12 +9,15 @@ using Test
 
 @testset "fields have the expected grids" begin
 	h = 0.2
-	U = XField{Float64}((h, h), ones(3,4))
+	U = XField((h, h), ones(3,4))
+	V = XField(h, ones(3,4))
 	X, Y = grid(U);
 	
 	x = [-0.2, 0, 0.2];
 	y = [-0.3, -0.1, 0.1, 0.3]'
 	
+	@test U.h == V.h
+	@test U.vals == V.vals
 	@test X.vals ≈ repeat(x, 1, 4)
 	@test Y.vals ≈ repeat(y, 3, 1)
 end

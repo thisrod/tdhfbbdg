@@ -35,10 +35,12 @@ Field{T} = Union{XField{T}, KField{T}} where T
 function XField(h::Tuple{Real, Real}, vals::Matrix)
 	XField(Tuple{Float64,Float64}(h), vals)
 end
+XField(h::Real, vals::Matrix) = XField((h,h), vals)
 
 function KField(h::Tuple{Real, Real}, vals::Matrix)
 	KField(Tuple{Float64,Float64}(h), vals)
 end
+KField(h::Real, vals::Matrix) = KField((h,h), vals)
 
 # AbstractArray primitives
 
