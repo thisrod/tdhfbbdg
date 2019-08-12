@@ -8,8 +8,7 @@ import AbstractFFTs.fft
 import AbstractFFTs.ifft
 import Base: size, getindex, setindex!, similar, BroadcastStyle
 import Base.Broadcast: AbstractArrayStyle, Broadcasted
-import Base.sum
-import Base.diff
+import Base: sum, diff, ==, ≈
 import LinearAlgebra: norm, Matrix
 
 export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
@@ -41,6 +40,12 @@ function KField(h::Tuple{Real, Real}, vals::Matrix)
 	KField(Tuple{Float64,Float64}(h), vals)
 end
 KField(h::Real, vals::Matrix) = KField((h,h), vals)
+
+# comparisons
+# these compare grids, the AbstractArray default methods just compare elements
+
+==(u::XField, v::XField) = u.h == v.h && u.vals == v.vals
+≈(u::XField, v::XField) = u.h == v.h && u.vals ≈ v.vals
 
 # AbstractArray primitives
 
@@ -79,6 +84,7 @@ find_h(U::Field) = U.h
 promote_h(::Nothing, ::Nothing) = nothing
 promote_h(h, ::Nothing) = h
 promote_h(::Nothing, h) = h
+# TODO find an alternative to comparing floating point grids for exact equality
 promote_h(h, l) = h == l ? h : error("Grids step mismatch in broadcast")
 
 # Fourier transforms

@@ -61,6 +61,25 @@ end
 	@test abs2.(χ) isa KField{<:Real}
 end
 
+@testset "equality and approximation" begin
+	F = XField(0.2, ones(Float64,3,4))
+	H = copy(F)
+	H[2,2] = 3
+	J = copy(F)
+	J[2,2] = nextfloat(3.0)
+	K = XField(0.3, ones(Float64,3,4))
+	
+	@test copy(F) == F
+	@test deepcopy(F) == F
+	@test H ≠ F
+	@test J ≠ F
+	@test K ≠ F
+	
+	@test H ≉ F
+	@test H ≈ J
+	@test K ≉ F
+end
+
 @testset "integral of cos^2 with single-point axis" begin
 	h = π/30
 	R = XField((h, 1), ones(30,1))
