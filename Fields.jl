@@ -8,7 +8,7 @@ import AbstractFFTs.fft
 import AbstractFFTs.ifft
 import Base: size, getindex, setindex!, similar, BroadcastStyle
 import Base.Broadcast: AbstractArrayStyle, Broadcasted
-import Base: sum, diff, ==, ≈
+import Base: sum, diff, ==, ≠
 import LinearAlgebra: norm, Matrix
 
 export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
@@ -41,12 +41,6 @@ function KField(h::Tuple{Real, Real}, vals::Matrix)
 end
 KField(h::Real, vals::Matrix) = KField((h,h), vals)
 
-# comparisons
-# these compare grids, the AbstractArray default methods just compare elements
-
-==(u::XField, v::XField) = u.h == v.h && u.vals == v.vals
-≈(u::XField, v::XField) = u.h == v.h && u.vals ≈ v.vals
-
 # AbstractArray primitives
 
 size(U::Field) = size(U.vals)
@@ -55,6 +49,13 @@ setindex!(U::Field, x, I...) = setindex!(U.vals, x, I...)
 function similar(U::Field, ::Type{T}, dims::Dims) where T
 	fieldtypeof(U){T}(U.h, similar(U.vals, T, dims))
 end
+
+# TODO open issue where u == v does something special, but u ≈ v broadcasts normally
+
+# Here's the workaround
+
+==(u::Field, v::Field) = all(u .== v)
+≠(u::Field, v::Field) = !(u == v)
 
 # Broadcasting
 
@@ -85,7 +86,7 @@ promote_h(::Nothing, ::Nothing) = nothing
 promote_h(h, ::Nothing) = h
 promote_h(::Nothing, h) = h
 # TODO find an alternative to comparing floating point grids for exact equality
-promote_h(h, l) = h == l ? h : error("Grids step mismatch in broadcast")
+promote_h(h, l) = h == l ? h : throw(DimensionMismatch("grids of Fields must match"))
 
 # Fourier transforms
 # TODO make these L² unitary

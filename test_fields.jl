@@ -73,11 +73,12 @@ end
 	@test deepcopy(F) == F
 	@test H ≠ F
 	@test J ≠ F
-	@test K ≠ F
+	@test_throws DimensionMismatch K .≠ F
+	@test_throws DimensionMismatch K ≠ F
 	
 	@test H ≉ F
 	@test H ≈ J
-	@test K ≉ F
+	@test_throws DimensionMismatch K ≉ F
 end
 
 @testset "integral of cos^2 with single-point axis" begin
