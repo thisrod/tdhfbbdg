@@ -61,6 +61,14 @@ end
 	@test abs2.(χ) isa KField{<:Real}
 end
 
+@testset "arithmetic" begin
+	X = XField(1, ones(3,3))
+
+	@test_throws ArgumentError X*X
+	@test_throws ArgumentError X/X
+	@test_throws ArgumentError X\X
+end
+
 @testset "equality and approximation" begin
 	F = XField(0.2, ones(Float64,3,4))
 	H = copy(F)

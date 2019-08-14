@@ -8,7 +8,7 @@ import AbstractFFTs.fft
 import AbstractFFTs.ifft
 import Base: size, getindex, setindex!, similar, BroadcastStyle
 import Base.Broadcast: AbstractArrayStyle, Broadcasted
-import Base: sum, diff, ==, ≠
+import Base: sum, diff, ==, ≠, *, /, \
 import LinearAlgebra: norm, Matrix
 
 export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
@@ -56,6 +56,12 @@ end
 
 ==(u::Field, v::Field) = all(u .== v)
 ≠(u::Field, v::Field) = !(u == v)
+
+# Catch errors
+
+*(u::Field, v::Field) = throw(ArgumentError("matmul with Fields, try .* instead of *"))
+/(u::Field, v::Field) = throw(ArgumentError("matmul with Fields, try ./ instead of /"))
+\(u::Field, v::Field) = throw(ArgumentError("matmul with Fields, try .\\ instead of \\"))
 
 # Broadcasting
 
