@@ -31,19 +31,16 @@ function advance(ψ, D, N)
 	D(ψ_I + (k₁ + 2(k₂+k₃))/6) + k₄/6
 end
 
-"step(x) returns next x and residual.  Fail after 10 increasing steps"
+"step(x) returns next x and residual."
 function relax(step, x₀, R)
 	global relaxed_r
 	x = x₀; r = Inf
 	incg = 0
 	relaxed_r = Float64[]
 	for j = 1:5000
-		x, r₁ = step(x)
-		push!(relaxed_r, r₁)
-		r₁ < r || (incg += 1)
-		incg < 500 || break
-		r₁ > R || (return x)
-		r = r₁
+		x, r = step(x)
+		push!(relaxed_r, r)
+		r > R || (return x)
 	end
 	println("WARNING: relax failed to converge")
 	x
