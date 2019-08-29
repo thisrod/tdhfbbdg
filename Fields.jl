@@ -150,19 +150,24 @@ norm(u::Field) = sqrt(real(sum(abs2.(u))))
 
 "Finite difference derivative at indexed point"
 function diff(I, u::XField, dims...)
+	# stencil = [1, -2, 1]
+	stencil = [-1/12, 4/3, -5/2, 4/3, -1/12]
+	n = length(dims) == 2 ? length(stencil) : 3
 	# Implementation restrictions
 	@assert length(dims) ≤ 2
 	@assert all(j->j==dims[1], dims)
 	# pad periodic boundaries
 	# vals = u.vals[[end; 1:end; 1], [end; 1:end; 1]]
-	# No, set zero boundaries
-	vals = zeros(eltype(u), size(u).+2)
-	vals[2:end-1, 2:end-1] = u.vals
+	# set zero boundaries
+	m = (n-1)÷2	# margin width
+	vals = zeros(eltype(u), size(u).+2m)
+	vals[1+m:end-m, 1+m:end-m] = u.vals
 	I isa CartesianIndex && (I = Tuple(I))
-	I = map(x->x+1, I)
+	I = map(x->x+m, I)
+	# mask to increment index along the differentiation axis
 	step = Tuple(dims[1] .== 1:2)
 	if length(dims) == 2
-		(vals[I.-step...] - 2vals[I...] + vals[I.+step...])/u.h[dims[1]]^2
+		sum(stencil[j]*vals[I .+ (j-(n+1)÷2).*step...] for j = 1:n)/u.h[dims[1]]^2
 	else
 		(vals[I.+step...] - vals[I.-step...])/2u.h[dims[1]]
 	end
