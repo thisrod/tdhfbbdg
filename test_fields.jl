@@ -6,8 +6,9 @@ include("Fields.jl")
 using .Fields
 using .Fields: linop_matrix
 using Test
+using DomainSets: (..), ×
 
-@testset "fields have the expected grids" begin
+@testset "fields have the expected domains and grids" begin
 	h = 0.2
 	U = XField((h, h), ones(3,4))
 	V = XField(h, ones(3,4))
@@ -15,6 +16,8 @@ using Test
 	
 	x = [-0.2, 0, 0.2];
 	y = [-0.3, -0.1, 0.1, 0.3]'
+
+	@test_broken domain(U) ≈ (-0.2..0.2)×(-0.3..0.3)
 	
 	@test U.h == V.h
 	@test U.vals == V.vals

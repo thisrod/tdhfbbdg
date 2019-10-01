@@ -8,10 +8,13 @@ import AbstractFFTs.fft
 import AbstractFFTs.ifft
 import Base: size, getindex, setindex!, similar, BroadcastStyle
 import Base.Broadcast: AbstractArrayStyle, Broadcasted
-import Base: sum, diff, ==, ≠, *, /, \
+import Base: sum, diff, ==, ≠, *, /, \, show
 import LinearAlgebra: norm, Matrix
 
-export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat, braket
+using DomainSets: (..), ×
+
+export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat, braket,
+	domain
 
 struct XField{T<:Number} <: AbstractMatrix{T}
 	h::Tuple{Float64,Float64}
@@ -40,6 +43,16 @@ function KField(h::Tuple{Real, Real}, vals::Matrix)
 	KField(Tuple{Float64,Float64}(h), vals)
 end
 KField(h::Real, vals::Matrix) = KField((h,h), vals)
+
+# Display
+
+function domain(u::XField)
+	hs = u.h;  ns = size(u.vals)
+	interval(h,n) = h/2*(1-n..n-1)
+	interval(hs[1],ns[1])×interval(hs[2],ns[2])
+end
+
+show(io::IO, u::XField{T}) where T = print(io, "XField{", T, "} on ", domain(u))
 
 # AbstractArray primitives
 
