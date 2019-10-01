@@ -11,7 +11,7 @@ import Base.Broadcast: AbstractArrayStyle, Broadcasted
 import Base: sum, diff, ==, ≠, *, /, \
 import LinearAlgebra: norm, Matrix
 
-export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat
+export Field, XField, KField, grid, fft, ifft, sum, diff, norm, lmat, braket
 
 struct XField{T<:Number} <: AbstractMatrix{T}
 	h::Tuple{Float64,Float64}
@@ -125,6 +125,8 @@ end
 # matrices for linear operators
 # TODO make derivative operators a callable object, with a constructor Matrix(::LinOp)
 
+braket(f, ψ::Field) = sum(conj.(ψ).*f(ψ))
+
 function linop_matrix(D, F::XField)
 	# The derivative of e_i goes in the ith column of the matrix
 	A = fill(Complex(NaN), length(F), length(F))
@@ -151,7 +153,8 @@ norm(u::Field) = sqrt(real(sum(abs2.(u))))
 "Finite difference derivative at indexed point"
 function diff(I, u::XField, dims...)
 	# stencil = [1, -2, 1]
-	stencil = [-1/12, 4/3, -5/2, 4/3, -1/12]
+	# stencil = [-1/12, 4/3, -5/2, 4/3, -1/12]
+	stencil = [1/90, -3/20, 3/2, -49/18, 3/2, -3/20, 1/90]
 	n = length(dims) == 2 ? length(stencil) : 3
 	# Implementation restrictions
 	@assert length(dims) ≤ 2
