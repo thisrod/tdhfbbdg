@@ -5,14 +5,15 @@ using Plots, ComplexPhasePortrait
 
 zplot(ψ) = plot(y, y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
 
-C = 10;  μ=25;  Ω=2*0
+C = 10;  μ = 10;  Ω = 2*0
 h = 0.5;  N = 11
 a = 1
 
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
 V = r² = abs2.(z)
-k₀ = Tuple(keys(r²)[argmin(r²)])
+k₀ = Tuple(keys(r²)[argmin(abs.(z.-0.5))])
 ψ = Complex.(exp.(-r²/2)/√π)
+ψ = ψ.*conj.(z)
 # jitter to include L ≠ 0 component
 ψ += (0.1*randn(N,N) + 0.1im*randn(N,N)).*abs.(ψ)
 
@@ -31,9 +32,9 @@ end
 #
 # with boundary condition ψ(z[k₀]) = 0, ψ is analytic at z[k₀]
 
-residual = []
+potential = []
 ψ₀ = similar(ψ)
-for _ = 1:100
+for _ = 1:Int(1e3)
     ψ₀ .= ψ
     for k = keys(ψ)
         i,j = Tuple(k)
@@ -52,6 +53,6 @@ for _ = 1:100
         end
      end
      Lψ = -∂²*ψ-ψ*∂²+V.*ψ+C*(abs2.(ψ₀)).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
-     m = sum(conj.(ψ).*Lψ)/norm(ψ)^2
-     push!(residual, norm(Lψ-m*ψ)/norm(ψ))
+     E = sum(conj.(ψ).*Lψ)/norm(ψ)^2 |> real
+     push!(potential, E)
 end
