@@ -1,0 +1,21 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Relaxation methods
+
+2019-10-03 Testing for stability
+
+In general, a relaxation process has an interpolation/extrapolation parameter, and a way to calculate a residual.  If the relaxation is done too aggressively, it becomes unstable.  If it is done to passively, it is slow.  So I need some tests for stability and failure.
+
+A stable relaxation usually settles to geometric convegence.  There are some tests to do here.  Is the relaxation heading in a consistent direction?  If it's extrapolated to give an estimate of the converged value, are we pointing towards that, or going sideways?  Hypothesis: stable points towards it, head more sideways as it becomes unstable.
+
+One way to monitor would be a matrix of the angles between the directions the relaxation is heading at different timesteps.  If it is small, this is a hint that the extrapolation could be done more aggressively.  If it is very small, maybe the routine can assume geometric decay, and extrapolate directly to the answer.
+
+2019-10-09
+
+I discussed with Tapio how a set of Bogoliubov modes relaxes to a self-consistent thermal cloud.  He says that quadratic extrapolation works very well.  He also says that a stationary point is an adequate stopping criterion—there is no similar issue to the imaginary time normalisation error.
+
+\bye

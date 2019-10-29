@@ -1,0 +1,29 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Discretisation of order parameters and sound waves
+
+\beginsection{HOT boundary}
+
+The goal is to find the equilibrium solution with chemical potential~$μ$ for the GPE
+$$(-∇²+V+g|ψ|²)ψ=μψ.$$
+This needs a boundary condition.  The ideal is~$ψ→0$ at infinity.  The usual one is to set~$ψ=0$ at the edge of the numerical domain.  Physically, this corresponds to an infinite well in the shape of the domain, with a harmonic potential at the bottom.
+
+At the boundaries, the trap potential should dominate the chemical potential, so the order parameter will be very close to a solution of the Schrödinger equation with energy~$μ$.  In 1D, with a numerical domain~$[-L,L]$, solve the Schrödinger equation
+$$(-∇²+V)φ=μφ$$
+on the domain~$[-∞,-L]$ with boundary conditions~$φ(x)→0$ for~$x→-∞$ and~$φ(-L)=1$.  This gives a boundary condition for the GPE at the left end of the numerical domain, where~$ψ^{(n)}(L)=aφ^{(n)}(L)$ for some normalisation constant~$a$, and the derivative orders~0 to~2.  When the functions are discretised by finite differences, this could be implemented by making~$a$ the value on a grid point at the boundary, extending the stencil past the boundary, and using~$ψ=aφ$ for stencil points outside the grid.
+
+In 2D, the sensible boundary for a central potential is a circle.  Inside the disk, $ψ$~is sampled on a grid as usual.  On the boundary, it is represented as Cauchy series, or equivalently as samples at evenly spaced points.  Each term~$a_ne^{inθ} in the Cauchy series has a well-defined angular momentum, and can be extended to unique a trap eigenstate~$a_nf_n(r)e^{inθ}$ outside the boundary, given that~$f_n(r)→0$ as~$r→∞$.  Summing the extended terms gives an extension of the Cauchy series outside the disk, which satisfies Schrödinger's equation.  The extension inside the disk is not normalisable at~$r=0$, but that doesn't matter: the nonlinearity warps a normalisable wave function to match.
+
+With finite differences, the stencils can be extended as in 1D, and points outside the numerical domain evaluated by the extension of the Cauchy series.  The points on the circle are no longer points of the grid, but there are ways to compute finite difference derivatives at irregular points.  Everything would be nicer with the polar spectral method from Chapter~11 of SMM.
+
+In 3D, all this could be done with spherical harmonics.  Is there a standard set of points between which spherical harmonics provide a stable interpolation?
+
+There are some issues with this.  Firstly, how much will it help?  Everything decays exponentially in this region, and it might not need a much larger grid to give the same improvement.  Tapio thinks it would be simpler to use a multigrid, with a coarser grid in the margin.  On the other hand, the rule of thumb for zero boundary conditions is that you need a numerical domain twice the width of the condensate to avoid the infinite well squashing it.  A HOT boundary can potentially cut the size of a 2D grid by ¾.
+
+Tapio pointed out that, in real simulations, you target a particle number, not a chemical potential.  As relaxation proceeds, the chemical potential is adjusted continuously to maintain the target number.  With a HOT boundary, a changing chemical potential changes the boundary derivative, even when the boundary values stay fixed.  This would have two effects.  Firstly, the number targeting would have to take account of the marginal atoms as well as those on the grid.  Secondly, the changes in the boundary condition might make relaxation unstable or slower.  (Or they might not.)
+
+\bye

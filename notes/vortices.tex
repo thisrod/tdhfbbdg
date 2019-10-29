@@ -1,0 +1,31 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Bogoliubov-de Gennes modes for trapped vortices
+
+2019-10-11 Sri at VULCAN
+
+Yesterday, I talked to Sri (find out his real name) at VULCAN.  He's investigating vortex formation in a dipolar BEC, where the polarisation of the atoms is rotated by an external magnetic field.
+
+His work raises an interesting point about rotating frames in quantum mechanics.  Classically, you can pick a rotating frame with any frequency, and things that are stationary in the lab frame rotate at that freqency.  But angular momentum is quantised, so that doesn't work in quantum mechanics: you can't have a rotating wave function that is non-zero at the origin.
+
+The “rotating frame” I get by adding a~$-Ω\hat L$ term to the Hamiltonian isn't what it seems.  Until~$Ω$ is large enough for a vortex to form, the order parameter is an~$L=0$ eigenstate, which is the case in the lab frame, not the rotating frame.  Would it be better to think of this as a Lagrange multiplier?
+
+In Sri's system, the gas cloud becomes an ellipsoid due to dipole forces.  He gets a stationary wave function, but parts of it have momentum, accounting for the tidal motion that rotates the ellipsoid in the lab frame.  So the “rotating” frame is quite subtle.  The coordinates really do rotate—the ellipsoid shape is only static in a rotating frame—but~$∇ψ$ is in the lab frame.  How does the equation of continuity work?  I should read the paper.
+
+The second interesting thing is Sri's results.  He was computing the sound wave modes for his condensate, and also doing dynamical simulations to see if it was stable.  He claims that, as~$Ω$ increases, the vortex state has lower energy than the “Thomas-Fermi” state well before negative energy modes develop, and that this is also true in a gas with contact repulsion.  That's an interesting claim.
+
+Sri also has some interesting method of discretisation, where the order parameter is expanded as a 3-variable polynomial in~$x$, $y$ and~$z$.  He doesn't know why he's doing that, it's just what everyone before him did.  Worth looking into maybe.
+
+2019-10-16 Tapio explains Sri
+
+In an ideal gas in a harmonic trap, the angular momentum eigenstates form straight lines in the~$L-ω$ plane.  Repulsion causes the lines to curve.  In a rotating frame, the curved line moves down in energy, as shown in the figure.  The concave upward parts of the dispersion curve become “roton minima”.  When the rotation is fast enough, one roton minimum reaches negative frequency, and the condensate becomes metastable.  The negative mode is a edge state, which would build up to become a vortex given enough time.  However, this state has very small overlap with the condensate, so that requires a lot of time, and in practice the BEC doesn't last that long.
+
+So, in practice, there are three transition rotation rates: when the vortex becomes the ground state, the metastable frequency when some edge mode becomes unstable, and the dynamical frequency (which Sri was finding) where the TF state becomes rapidly unstable.
+
+The rotating frame makes more sense if I think of the condensate as a classical wave.  If you're walking around a whispering gallery at the speed of sound, the sound wave fronts appear to be stationary.  You can infer from the phase gradient that they are moving at the speed of sound, but that velocity is in the gallery frame, not my rotating frame.
+
+\bye

@@ -1,0 +1,559 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Log of Bogoliubov dynamics work for Tapio
+
+\beginsection{Physics Goals}
+
+There are a couple of science goals to this project.  An initial one is to find out how the mass of a vortex, in the classical dynamics model, depends on the radius at which it is orbiting the condensate.  There is a “buoyancy force” on the vortex, pushing it in the direction of lower atomic density, towards the edge of the condensate.  Its mass can be determined from the speed at which it orbits.  This is what the ARC has been told we will do.
+
+The eventual goal is to run these simulations with fermions, and work with Chris and the two-dimensional Dyscope.
+
+\beginsection{Numerical Goals}
+
+The initial goal is to solve the BdG equations statically, in 2D,
+with an arbitrary potential.  This has two goals.  The first is Fred Brooks's “build
+one to throw away.”  The second is to have a simple and correct
+prototype, to validate the complicated ones that I'm going to build
+later.
+
+Later, the idea is to propagate the sound wave modes in parallel.
+Apparently each mode follows GPE dynamics, coordinated by a common
+density.  
+
+\item{1.} Solve very precisely for the equilibrium order parameter.
+The Bogoliubov modes are very sensitive to its chemical potential.
+Tapio knows an efficient way to do this, called Successive Over Relaxation.
+
+\item{2.} Set up a whopping great numerical derivative matrix.
+
+\item{3.} Diagonalise.  We want all the eigenfunctions, so it isn't
+clear that Krylov subspace methods will do better than dense methods.
+
+\item{4.} Calculate the non-condensate density due to the sound wave modes, and repeat from Step~1 until convergence.
+
+Once the order parameter has converged and the propagation has
+stopped, it is a good idea to test the residual of the GPE.  This
+will show up any systematic errors of that type.
+
+The existing code from my PhD, {\tt https://github.com/thisrod/drugs/blob/master/bec/buv.m}, turned out not to be much use.  The order parameter needs to be solved much more precisely than that code was able to.
+
+Now that I have a good 2D Bogoliubov code, I could go back to the Vienna trap problem.  The problems with the Bogoliubov ground state and the full potential still apply.
+
+\beginsection{Software Optimisation}
+
+Bogdan has code to solve lots of GPEs in parallel for
+Wigner and positive-P calculations.  We plan to work in Julia, which
+is no doubt a better alternative nowadays compared to Bodgan's hand
+kludged macros.  However, that code will be at least a useful resouce
+to look up how to go fast.  Possibly, the shortest path to our goal
+is to port the Wigner code to Julia, then modify it to propagate
+Bogoliubov modes instead of phase-space samples.
+
+The key numerical issue is how to implement the linear operator
+defined by the effect on~$(u_j,v_j)$ of the left-hand side of
+Equations~2.21 in \cite{aop-70-67}.  Apparently, the time evolution
+of the modes can be found by replacing the right hand sides of those
+Equations by~$du\over dt$ and~$dv\over dt$.  So the operator that
+must be diagonalised to give the initial modes is the same one that
+must be applied to propagate dynamics.
+
+A tempting approach is to parallelise the application of this
+operator, using a Finite Discrete Variable(?) method.  This breaks
+the 2D grid into a bunch of subgrids, does a spectral derivative
+on each subgrid, and enforces continuity at the boundaries.  The
+resulting matrix is almost block diagonal, each block correponding
+to a subgrid.  The exception is that the last row and column of
+each block overlap with the first row and column of the next one,
+to enforce the boundary condition.
+
+The parallelism from FDV comes from evaluating the blocks independently
+on the subgrids.  Plausibly, each block could be assigned to a GPU,
+and applied to~$10⁴$ mode vectors in parallel by GPU threads.  The
+same parallel linear operator can be used both for diagonalisation
+at the start, and for time propagation.
+
+The other approach is to propagate the mode vectors by solving lots
+of GPEs in parallel, as in a phase space simulation.
+
+We need to look at the resources available on OzStar, and see if
+there is enough memory to keep all the modes in core at once.  The
+minimum useful grid is~$100×100$, with~$10⁴$ points.  Almost all
+of the BdG modes need to be accounted for, so the memory required
+for double precision is~$(10⁴\,{\rm modes})×(10⁴\,{\rm
+points/mode})×(8\,\rm B)=1\,\rm GB$.  Tapio would like to use larger
+grids where this comes out to~$1\,\rm TB$.
+
+If all the modes fit into memory at once, the FDV parallelism makes
+sense.  Otherwise, modes will have to be swapped in and out of
+memory.  The problem isn't embarassingly parallel, because every
+mode depends on the total particle density, which depends on all
+the modes.
+
+Network complexity shouldn't be an issue.  Only the total density
+has to be communicated, and the boundary conditions if the FDV
+parallelism is exploited.
+
+\beginsection{Julia}
+
+The {\tt CUArrays} package implements broadcasting on GPU arrays, with GPU kernel generation.  No idea how that works, but nifty.
+
+The packages {\tt DifferentialEquations.jl} and {\tt ModelingToolkit.jl} are where active development is happening on PDEs and discretisation.  Finite differences are under active development.  See Issue~469 on {\tt DifferentialEquations.jl}.
+
+The blog at {\tt http://www.stochasticlifestyle.com/} is useful, especially {\tt http://www.stochasticlifestyle.com/solving-systems-stochastic-pdes-using-gpus-julia/}
+
+The {\tt JLD} package annotates HDF5 files with Julia type information.
+
+The Julia type system has some quirks.  The interpreter accepts {\tt Array`{Any, π`}()}, but this throws an error that {\tt show} throws another error when it tries to print!  There is an undocumented type {\tt Val`{x`}}, which has the property {\tt Val`{x`} isa Type`{Val`{x`}`}}.  By contrast, it is not the case that {\tt 1 isa Type`{1`}} for values that are not types.  This allows method dispatch on specific values.  You can do {\tt Val`{X`} where X} as a default method, and define special cases.  It's unclear why you would do that instead of defining a function.
+
+{\tt Makie.jl} sounds interesting for interactive plots.
+
+The project at {\tt juliadiff.org} does automatic differentiation.
+
+{\tt FiniteDifferenceDerivatives} gives the coefficients for arbitrary grids, powers and stencils.  (What happens when you derive finite-difference formulae for a Chebyshev grid?)
+
+There is a {\tt JuliaFormatter.jl} inspired by {\tt gofmt}.
+
+{\tt ClusterManager.jl} supports SLURM.
+
+There is a package {\tt ComplexPhasePortrait} to display phase as colour.  This outputs an array of {\tt ColorTypes.RGB} objects, and it isn't clear how to get that displayed on screen.
+
+The {\tt Compose} library is basically a backend for {\tt Gadfly}.
+
+There is a {\tt ::Val[N]} method selector that isn't documented anywhere.  It seems to work for integers and symbols.
+
+The {\tt JuliaGraphics} project does what it says.  There is a {\tt GGPlots} addon to do grammar of graphics in {\tt Plots}, but that is WIP.
+
+My current plan is to work with {\tt Plots.jl} and whatever backend works for PDF, but put some time in to developing and documenting Gadfly and Compose.  Could do a MetaPost backend, which exports the data and leaves you to define some macros to draw it.
+
+\beginsection{Verification}
+
+There are a few methods to validate a BdG solver.  The first check
+is that it reproduces the condensate mode, with a pair of energies~$±E$
+due to the~$u→v*$ symmetry.  The energy~$E$ should be small, on the
+order of~$10^{-10}·ℏω$.
+
+The next step is to check that the solver correctly reproduces the
+modes for a harmonic trap, with and without a soliton.  The simplest
+check is a plot of mode energy against angular momentum.  See below for how to define the angular momentum of a sound wave mode.
+
+The harmonic oscillator, with zero repulsion, should exactly reproduce
+the eigenstates, with the~$nℏω$ ladder.  Small repulsion should cause small changes
+in the eigenvalues.  A plane harmonic oscillator is rotationally symmetric, so angular momentum is a good quantum number.  If the degenerate pair of lowest-energy excited states is~$ψ_x$ and~$ψ_y$, then~$ψ_x±iψ_y$ are simultaneous energy and angular momentum eigenstates.
+
+A vortex order parameter can be found by solving the GPE with a
+Lagrange multiplier, just like the chemical potential can set the
+particle number.  This means solving
+$$(-∇²+g|ψ|²-Ω\hat L_z)ψ=μψ.$$
+
+The vortex has a Kelvin mode.  This has angular momentum~$-ℏ$, and
+negative energy.  (The degenerate pairs of modes have opposite
+energy and angular momentum.)  The negative energy means that you
+can reduce the energy of the gas by exciting the mode.  It rotates
+against the sense of the vortex, and represents the vortex core
+spiralling outwards and escaping from the edge of the trap.  This
+mode doesn't matter physically because it breaks conservation of
+angular momentum, but it provides a useful numerical check.
+
+As the trap rotation frequency~$Ω$ increases, the energy~$ℏΩ$ added to the Kelvin mode increases in proportion.  In the ideal gas limit, the Kelvin mode has energy~$-ℏω_\perp$, which increases to zero when the trap rotates with~$Ω=ω_\perp$.  At this point, the lowest energy state becomes a vortex state, and the gas is no longer trapped.  As the repulsion increases, the energy of the Kelvin mode becomes less negative, so a stable vortex forms well before the trap breaks down.
+
+2019-06-26 Normalising imaginary time propagation
+
+Imaginary time propagation is a standard way to find the equilibrium
+order parameter of a Bose gas.  Let's say for now that the GPE is
+$$i{ψ_t}=(-∇²+V+g|ψ|²)ψ,$$
+where~$V$ is a trapping potential.  A substitution is made with~$τ=it$, so the GPE becomes
+$${ψ_τ}=-(-∇²+V+g|ψ|²)ψ.$$
+When this is propagated over~$τ$, the order parameter~$ψ(x,t)$
+shrinks over time, but the high-energy components shrink faster
+than the low-energy ones.  If the order parameter is renormalised
+during the propagation, to keep~$∥ψ∥²=N$, then the solution will
+converge to the equilibrium order parameter~$ψ₀$.
+
+The obvious way to discretise this is to solve the GPE for a time
+step~$h$, to get~$ψ₁(x)$, then set~$ψ(x,t+h)=√N·ψ₁(x)/∥ψ₁∥$.  The
+propagation stops when the $ψ(x,t+h)=ψ(x,t)$.  However, during the
+time step, the GPE is being solved with a reduced density, which
+makes the converged chemical potential systematically low.  In
+principle, you could fix this by reducing the time step over the
+propagation, but that becomes inefficient in practice.
+
+Peter Drummond suggested another way to renormalise.  Let~${\cal
+G}ψ=-(-∇²+V+g|ψ|²)ψ$ be the right-hand side of the GPE.  Then,
+instead of discontinuously updating the order parameter each time
+step, subtract the component parallel to~$ψ$, to give a modified
+GPE
+$${ψ_τ}=\left({\cal G}-∫{ψ*\over ∥ψ∥}{\cal G}ψ\right)ψ.$$
+The original motivation was that higher order PDE solvers rely
+on~$ψ$ being a continuous function of~$t$, and lose precision due
+to the jumps in normalisation.  But there's another benefit relevant
+here.  The solution to this equation preserves its particle number
+over each time step, and might avoid the systematic low density
+problem.
+
+In the RK4IP algorithm, the operator is split as~${\cal G}=D+N$.
+By linearity, subtracting the parallel components from~$D$ and~$N$
+separately adds up to subtract them from~$\cal G$.
+
+I tired this.  Projecting the~$\exp(-τ∇²)$ operator, by applying it then renormalising the state, made adaptive convergence marginally faster.  Projecting the~$N(x)$ operator made it significantly slower.  So that was a failure.
+
+The operator~$\exp(-τ∇²)$ is the solution to~$ψ_τ=-∇²ψ$.  I could do formally better by discretising in reciprocal space, solving the resulting system of ODEs with projection—the fourier transform is unitary—and applying the operator solution.  Since the speedup is marginal, that isn't worthwhile.
+2019-06-26 Checking time steps and convergence
+
+The naive imaginary time method (and maybe other methods) has a
+time step adaptation problem.  We want to detect when the chemical
+potential~$μ$ is close to convergence, but the residual of the GPE
+is large.  Idea: find the current chemical potential, estimate the
+converged value by whatsisname extrapolation, find the residual,
+then reduce the time step if the residual is large compared to the
+difference between the two chemical potentials.
+
+2019-07-02 Heat equation validation
+
+The RK4IP algorithm, in imaginary time, involves the operator~$\exp(-τD)$,
+where~$D=-∇²$.  On its own, this operator solves the heat
+equation~$φ_τ=-Dφ$, with~$φ(x,τ)=\exp(-τD)φ(x,0)$ up to abuse of
+notation.  That equation is separable, and it has the 1D solution
+$$φ(x,t)={1\over 2√{πt}}e^{-x²\over 4t}.$$
+The implementation of~$\exp(-τD)$ should
+satisfy~$φ(x,t+τ)=\exp(-τD)φ(x,t)$.
+
+2019-07-05 Trick for finding convergence
+
+The following plot shows a numerical process converging to some
+chemical potential~$μ$.  The process terminated before convergence,
+and the final value of~$μ$ has been subtracted.  For the initial
+steps, where the final value might as well be the exact value, the
+graph shows a nice geometric convergence, gaining an extra digit
+every 50 steps.  This appears as a straight line on the semi-log
+plot.
+
+If the exact converged value had been subtracted, this straight
+line would continue.  As it is, there comes a point where~$μ$ has
+converged to within about~$10^{-4}$ of final value, which is about
+as far as the final value is from the converged value.  At this
+point, the difference matters.  The graph drops below the line,
+because the values are significantly closer to the final value than
+the converged value.
+
+The trick is that, just by looking at the graph, I can tell that~$μ$ is
+about~$10^{-4}$ away from convergence.
+
+Is there a way to extrapolate geometric convergence?
+
+\XeTeXpicfile resp190705.png width 0.7\hsize
+
+
+2019-07-08 Successive over-relaxation
+
+The SOR method is a way to solve a system of linear equations,
+$Ay=b$.  (I'll call the unknown~$y$, because in my case it is a
+vector of samples from the wave function~$ψ(x_i)$, and I want to
+save~$x$ for the coordinate.)  SOR is a variation of an interative
+method called Gauss-Seigel.  The idea is to start with a guess~$y^{(0)}$,
+then iterate over the grid~$x$, so that we currently have updated
+estimates~$y^{(1)}_j$ for~$1≤j<i$.  We now pick row~$i$, and solve
+the equation
+$$b_i = ∑_{j=1}^{i-1}a_{ij}y^{(1)}_j + a_{ii}y_i + ∑_{j=i+1}^{n}a_{ij}y^{(0)}_j$$
+for the unknown~$y_i$.
+
+The modification in SOR is that, instead of using~$y^{(1)}$ as the
+next estimate for~$y$, we use an extrapolation~$ay^{(0)}+(1-a)y^{(1)}$
+instead.  There are two ways to do this.  The first, extrapolating
+the whole grid, is as written.  The second, pointwise extrapolation,
+takes updated estimates~$y^{(1)}_j$ for~$1≤j<i$ and old
+extimates~$y^{(0)}_j$ for~$i<j≤n$, solves for the unknown~$y_i$,
+and sets~$y_i^{(1)}=y_i^{(0)}+a(y_i-y_i^{(0)})$.  The latter is
+used in practice.  Applying a small extrapolation parameter~$a≈1.4$
+at every point can greatly accelerate convergence.
+
+Books have been written about the stability and convergence of all
+this, but I'm going to ignore that for now.  The initial goal is
+to find equilibrium order parameters by Gauss-Siegel.
+
+There are two complications.  First, the Gross-Pitaevskii problem
+is noninear.  On the left-hand side, we have~$A(y)y$ instead of
+just~$Ay$.  I'll deal with that by using~$A(y^{(0)})$ to
+calculate~$y^{(1)}$.  The obvious alternative would be to
+use~$\pmatrix{y^{(1)}₁&…&y^{(1)}_{i-i}&y^{(0)}_i&…&y^{(0)}_n}$ to
+compute~$y^{(1)}_i$.
+
+The more serious complication is the right-hand side.  Instead of
+a fixed target~$b$, I have to aim at a moving target~$μy$.  From
+one of Tapio's papers \cite{cpc-142-396}, it sounds like the answer
+is to fix~$μ$, solve for~$y$, find the particle number, update~$μ$,
+and keep trying until you get the right number of particles.  However,
+the problem~$(A-μI)y=0$ usually has as its only solution~$y=0$,
+which isn't much help.  I'll start by solving~$(A(y^{(0)})y =
+μy^{(0)}$ for~$y^{(1)}$, and update~$μ$ once that has converged.
+
+2019-07-09 Spectral derivatives
+
+When taking the spectral derivative of a whole field, it's more efficient to use Fourier transforms.  The Gauss-Seidel algorithm evaluates it one point at a time, so explicit derivative matrices win there.
+
+Trefethen derives the spectral derivative matrix for a special case, where the domain is~$[0,2π]$, the grid is~$x_j=2πj/N$, $j=1,2,⋯,N$, and~$N$ is even.The interpolating sinc function is
+$$p(x)={\sin(πx/h)\over (2π/h)\tan(x/2)},$$
+where~$h=2π/N$.  This results in Toeplitz derivative matrices, with first columns
+$$D_N=\pmatrix{0&-½\cot{1h\over 2}&½\cot{2h\over 2}&-½\cot{3h\over 2}&…}^{\rm T}$$
+and
+$$D_N^{(2)}=\pmatrix{-{π²\over 3h²}-{1\over6}&½\csc^2\left({1h\over 2}\right)&-½\csc^2\left({2h\over 2}\right)&…}^{\rm T}.$$
+The matrices have the same (anti)-symmetry as the derivative operators.
+
+For odd~$N$, the corresponding formulae (derived with the help of Matlab's symbolic toolbox) are
+$$p(x)={\sin(πx/h)\over (2π/h)\sin(x/2)},$$
+$$D_N=\pmatrix{0&-½\csc{1h\over 2}&½\csc{2h\over 2}&…}^{\rm T},$$
+and
+$$D_N^{(2)}=\pmatrix{-{π²\over 3h²}+{1\over12}&½\csc\left({1h\over 2}\right)\cot\left({1h\over 2}\right)&-½\csc\left({2h\over 2}\right)\cot\left({2h\over 2}\right)&…}^{\rm T}.$$
+
+If the functions~$f:[0,2π]→{\bf R}$ and $g:[0,L]→{\bf R}$ have the same samples at a grid of~$N$ points on their respective domains, the derivatives will satisfy~$g^{(n)}(x)=(2π/L)ⁿf^{(n)}(x)$, and the derivative matrices scale in proportion.  Where $h$~occurs in the formulae above, it should be interpreted as~$h=2π/N$, whatever the actual grid step.
+
+2019-07-10 SOP experiments
+
+I've experimented with successive over-relaxation, in the script {\tt working2.jl}.  I won't include any plots for now, because I hope to make Jupyter notebooks or some kind of {\tt publish()} before long.
+
+The first test is that I can solve~$Hψ=1·ψ₀$, where~$H$ is the 1D harmonic oscillator hamiltonian.  The known solution~$ψ₀$ is preserved by a single Gauss-Seidel step, and Gauss-Seidel converges geometrically, abeit slowly, with a residual around~$10^{-5}$ after 2000 steps.
+
+Since the answer is known in this case, the optimum SOP extrapolation parameter can be determined as the least squares solution to~$(ψ'-ψ)a=(ψ₀-ψ)$.  This gives very large answers, around 165, but that is consistent with Gauss-Seidel taking 400 steps to gain each digit.  Supposedly SOP is only ever stable for~$0<a<2$, and I've found that it's unstable for~$a>1$ in my experiments.  Something is odd there.
+
+With my current code, 2D Gauss-Seidel involves a~$10⁴×10⁴$ dense spectral derivative matrix, which isn't practical.  I know a way to rewrite it to exploit sparsity.  Imaginary time can evaluate the spectral derivatives by fourier transforms, and can do the 2D case.
+
+Inspecting the residual~$∥(H-E)ψ∥$ is a plausible way to choose the SOP extrapolation parameter, just like it can be used to choose the imaginary time step.
+
+2019-07-17 Progress on equilibrium order parameters
+
+The results of my Gauss-Seidel and imaginary time simulations are in last week's progress report to Tapio.  (TODO: copy it here.)  
+
+That leaves SOP.  Tapio suggests that the usual extrapolation parameter is fixed and around 1.4.  That isn't a massive speedup, so for now I'm going to stick with Gauss-Seidel.  I'm working in 1D for the moment, because the bookkeeping for fast 2D is a bit fiddly.
+
+Gauss-Seidel solves the harmonic oscillator problem~$Hψ=E₀ψ₀$ reliably, albeit a bit slowly.  The next step is to solve $Hψ=E₀ψ$.  Choosing the initial value of~$ψ$ is tricky.  Obviously~$ψ₀$ is going to work, but I already know that.  (In the nonlinear problem, $ψ₀$~is a good choice, and I can see the solution converge to the repulsive order parameter.)
+
+I've tried initialising~$ψ$ to white noise, and the results are interesting.  Most of the time, the solution converges as in~{\tt resp190717a.pdf}.  However, occasionally, an initial condition is drawn where it diverges as in~{\tt resp190717b.pdf}.  This is wierd.  If there is a parasitic solution, it should be excited by almost every random initial condition.  Maybe I can defer figuring that out until after I'm getting repulsive order parameters.  I can abort any run where the residual increases, and restart with a different random initial condition.
+
+It turns out that this is normal.  Imaginary time forces the energy to decrease, which also forces the residual to decrease.  Gauss-Seidel doesn't have this constraint, so the residual often increases before it starts to fall.  An example is using a vortex as the initial condition.  Eventually, Gauss-Seidel makes the vortex disappear, and gives the non-rotating ground state.  However, a relaxed vortex is quasistable, so the initial move away from it causes the energy to increase.  It would be interesting to see how imaginary time makes the vortex disappear without ever increasing the energy.
+
+2019-07-18 Meeting Tapio
+
+The speedup in SOR comes from extrapolating at each point in the grid, as you run through a Gauss-Seidel step.  Doing the whole step and then extrapolating is much slower.  (However, a finite-difference formulae makes the Gauss-Seidel steps largely independent of each other, so this is less true than for a spectral formula.  Could this be the advantage of 17 point stencils, just that they give SOR some feedback to work with?)
+
+For vortices, higher order finite differences are required to get accurate momentum near the vortex core.  Typically 19th order.  Why not go spectral with 150th order?  The boundary conditions are easier for finite differences.
+
+Boundary conditions for vortices should be zero, periodic does wierd things with the phase at the edge of the domain.
+
+The dynamics for the Bogoliubov~$u_j$ and~$v_j$ come from substituting any orthogonal modes into the mean-field Hamiltonian.  (Really?  Check that.) 
+
+2019-07-19 Chris Billington's code
+
+The routine takes a {\tt boundary\_mask} parameter, which excludes grid points from the update, so that their initial values serve as boundary conditions.  An $n+1$~point finite difference formula for~$D^{(n)}f$ is based on an~$n$th order polynomial.  Given~$f$, $Df$ through~$D^{(n-1)}f$ on the boundary, you have an~$n-1$th order Taylor polynomial.  Sampling this at~$n-1$ points outside the boundary plus one boundary point lets you solve for the first interior point.
+
+Billington's SOR code has lots of complicated parallel stuff.  However, the basic algorithm is just Gauss-Seidel with pointwise extrapolation.
+
+2019-07-19 Gauss-Seidel and eigenvalues
+
+There's a subtlety which makes Gauss-Seidel good for solving nonlinear eigenproblems, but not for linear ones.
+
+In the first instance, Gauss-Seidel solves a system of linear equations, $Ax=b$.  With a known eigenvalue~$λ₀$, the right-hand side can be iterated along with~$x$, and it turns out to solve~$Ax=λ₀x$ pretty well.  But there is a problem when $λ$~is unknown: if we guess~$λ$ wrong, the problem~$Ax=λx$ has no solution.  I don't know what Gauss-Seidel does in that case, but I'm guessing that it isn't pretty.
+
+Nonlinearity makes it all easier!  Whatever guess is made for~$μ$, the problem~$L(x)x=μx$ has a solution.  That solution might not have the particle number that I want, but it still exists.  As the relaxation converges, I can adjust~$μ$ to get the number of particles that I want.
+
+2019-07-29 Talking to Tapio
+
+Circulation is quantised, not angular momentum.  If there is more than one vortex, different parts of the fluid have different angular momentum, and the average might not be a multiple of~$ℏ$.
+
+For a non-interacting fluid in a harmonic trap, the energy of a vortex is~$ℏω_\perp$ per particle.
+
+2019-07-30 Bogoliubov modes
+
+The 3 point finite-difference formulae 
+
+The SHO is tricky.  On an~$8×8$ grid, the finite-difference numerical ground state has~$E₀≈1.7$, where the continuum value is~2.  When I force~$μ=2$, the low repulsion strength means that it takes a large density to push the energy up there.  (But of course, there still isn't much repulsion, and it should be nearly a harmonic oscillator, with more than one particle.)
+
+The SHO modes are real, with~$∥u∥$ thousands of times larger than~$∥v∥$.  This is because of the low repulsion.  As in a uniform gas, a small repulsion energy can only excite quasiparticles in the low frequency modes, and the high-frequency ones are nearly vacuum modes in the Bogoliubov ground state. 
+
+Also, the numerical ground state has less energy than the samples of the exact ground state.
+
+2019-07-31 Meeting Tapio
+
+Imposing a wave number cutoff on a massless Bose field causes the particles to have a mass.  This means that, when the BdG problem is solved on a grid, the frequency of the condensate sound wave mode is not exactly zero.  This is supposedly analogous to photons gaining mass when they're trapped in a cavity.
+
+When a classically integrable system is quantised, its energy levels tend to cluster, and the distribution of differences to the nearest level is heavy around zero.  Chaos manifests as anti-bunching, so that the distribution of differences is broader.  See {\tt https://doi.org/10.1063/1.2062917}.
+
+Classical chaos can be seen as every trajectory being dense in phase space, unlike the orbits of integrable systems.  When an orbit intersects itself, there are only two concurrent trajectories.  When a chaotic trajectory intersects itself, there are many.  Two interfering waves produce interference fringes, but three produce vortices.  Tapio has a hypothesis that a semi-classical wave packet gets split on either side of these vortices, then the two parts go on wildly different trajectories.  This is the quantum mechanism for the exponential divergence of the classical trajectories.
+
+The Bogoliubov transformation diagonalises the condensate dynamics exactly.  My task is to treat the “second order” dynamics caused by the non-condensate particles.  This is apparently not second order pertubation theory in the usual sense, but Beliaev invented a second-order diagram theory that accounts for it.
+
+
+2019-08-06 Non-condensate density corrections
+
+When a condensate is held in a harmonic trap, its sound wave modes have a small~$v$ component and~$∥u∥²≈1$.  This means that there is almost no Bogoliubov squeezing.  There's a set of atomic orbitals which very nearly diagonalise the interacting Hamiltonian, despite the repulsion.  For the repulsion strength~$C=1$ and chemical potential~$μ=2$ that I'm using, there is only~$0.14$ particle in the condensate, so the repulsion is small.
+
+Increasing~$μ$ to 3 doesn't change the kinetic and trap energy much, but it adds enough particles to give a repulsion energy around 1.
+
+2019-08-07 Meeting Tapio
+
+Bogoliubov time evolution has two parts.  First, the modes evolve in time in a way that is derived in the yellow BEC\ book.  Secondly, this evolution changes the distribution of quasiparticle energies, putting the condensate out of thermal equilibrium.  Therefore the occupations of the modes evolve too.
+
+The Bogoliubov approximation has several refinements.  There is the basic version, where the repulsion from uncondensed atoms is simply ignored.  This is “gapless”, in the sense that the condensate quasiparticle mode has zero energy.  There is some theorem of QFT which requires that.
+
+The next step is the Hartree-Fock-Bogoliubov approximation, where the uncondensed atoms are treated in a way that is purportedly consistent to second order.  Equation~4 of \cite{prb-53-9341} is supposedly inspired by Wick's theorem, but it isn't rigorous.  The resulting theory has a gap in its quasiparticle spectrum.  Tapio claims that there are some higher order Belaiev(sp ?) modes, and the gap occurs because the HFB anomalous density~$〈δ\hat ψ²〉$ only accounts for some of these modes and not others.  I don't understand that argument yet.
+
+The intermediate step is the Popov approximation, where the anomalous density is set to zero.  In principle, this is less accurate than the full HFB approximation, but it is guaranteed to be gapless.  That makes it more accurate for dynamics work.
+
+Periodic boundary conditions are really bad for rotating condensates.  The periodic cells need to rotate in opposite senses at the edges, and they get stuck like a rectangular grid of gears all trying to rotate the same way.  This distorts the modes.
+
+2019-08-14 Tapio
+
+Fetter is misleading about the Kelvin mode, pick positive norm not positive energy.
+
+Aim for self consistency next week, then attack 
+
+Search for Belaiev in the yellow book.
+
+Spectral methods aren't a good match for vortices.  (Why did they work for the onset of turbulence?)  Rough idea: the energy depends on the positions of the vortex cores, in a spectral method those are the roots of a polynomial, polynomial roots are ill-conditioned, therefore spectral energy is ill-conditioned.
+
+What about a variational method?  Treat the vortex cores parametrically, and do the smooth correction spectrally.
+
+2019-08-16 Bogoliubov modes and condensate phase
+
+In the original nonuniform Bogoliubov paper \cite{aop-70-67}, Fetter factored out the condensate phase.  That makes sense in for symbolic calculations.  But it gives rise to modes with phase singularities where they have finite density, which is numerically problematic.  There's also the complication of how to assign a condensate phase at the vortex core.  All of those problems go away if you treat the condensate amplitude as a complex number.
+
+In the rotating condensates paper \cite{rmp-81-647}, Fetter gives the following Bogoliubov eigenproblem, Equations~2.43 and~2.44
+$${\cal L}u-Cψ₀²v=ωu\qquad{\rm and}\qquad{\cal L*}v-Cψ₀^{2\ast}u=ωv.
+$$
+This would allow~$u$ and~$v$ to have different angular momentum.
+
+Tapio claims that the~$Ω·J$ term in~${\cal L}$ should be negated in the~${\cal L*}v$ part.  That makes sense, because these Equations come from
+$$ψ(r,t) = e^{-iμt}\left(ψ₀(r)+u(r)e^{iωt}-v*(r)e^{iωt}\right),$$
+so the sense of rotation in~$ψ$ is the opposite of that in~$v$.  Getting that wrong stuffs up the low energy modes where~$v$ matters, but has no effect on the high energy modes where~$∥v∥«∥u∥$.  That's what I've been seeing.
+
+2019-08-21 Tapio
+
+Angular momentum is a good quantum number for a trap and condensate with circular symmetry.  Therefore, the BdG modes should be angular momentum “eigenstates”.  To make that happen, I need to treat the condensate angular momentum correctly, and make the right choice of $v$ and~$v*$.  This is derived in \cite{prl-92-060407}.
+
+Tapio is used to reading graphs where~$ω_\perp=1$, and~$L=0$ is the condensate angular momentum.
+
+To get the right frequences for Kohn modes, you need a grid around twice the size of the condensate (in the Thomas-Fermi limit, where the condensate has a weel-defined size).  The test is that the modes have frequency exactly~$ω_\perp=1$.
+
+The dynamics happen, in the first instance, by replacing the RHS of the BdG eigenvalue equations by~$i{∂\over ∂t}$.  There is an anomalous density to think about too.  This is derived in the yellow book.  Tapio would like to know what physical collision processes all these operator moments are describing.
+
+In the dyanamical case, the system is out of thermal equilibrium, so the relations~$〈α_j†α_k〉=δ_{jk}f(ε_j)$ and $〈α_jα_k〉=0$ generalise to~$〈α_j†α_k〉=f_{jk}$ and $〈α_jα_k〉=g_{jk}$.  I won't worry about the occupation dynamics for now.
+
+The frequency of the Kelvin mode is~$ω_\perp$ in the non-interacting limit.  It becomes small in the Thomas-Fermi limit, so you can get a stable vortex at a rotation rate where the condensate will not escape the trap.
+ 
+2019-08-23 Angular momentum of sound wave modes
+
+A sound wave has both a~$u$ part and a~$v$ part.  In a rotating condensate, these have different angular momenta.  So it is not immediately obvious how to define the angular momentum of the mode.   Many papers get this wrong, although all of their simulations magically turn out integers regardless of what their formulae say.
+
+The correct way is given implicitly in Equation~5 of \cite{prl-86-2704}, and explicitly in Equations~6, 15, 16 and~17 of \cite{pra-68-033611}.  The angular momentum~$L$ of the condensate is defined in the obvious way, treating it as an unnormalised wave function.  Likewise, the mode functions are given angular momentum~$L_u$ and~$L_v$.  The angular momentum of the mode, with respect to the condensate, is then given as a weighted average
+$$q_θ={(L_u-L)∥u∥² + (L_v+L)∥v∥²\over ∥u∥²+∥v∥²}={L_u∥u∥² + L_v∥v∥²-L\over ∥u∥²+∥v∥²}.$$
+It seems hard for this to be an integer unless~$L_u-L=L_v+L$, or in other words~$L_u=L_v+2L$.
+
+2019-08-23 Angular momentum
+
+A wave function with integer winding number doesn't have to be an angular momentum eigenstate.  In the classical limit, the particle can move in and out radially, so its angular momentum varies over time.  In quantum mechanics, this becomes a superposition state.  There is one dominant angular momentum, and the small components of other momenta don't visibly affect the winding number.
+
+This is very likely to happen when a vortex is squashed into too small a box by the numerical grid.
+
+2019-08-26 Lagrange multipliers
+
+With a bit of hand waving about functional derivatives and Wirtinger calculus, the chemical potential can be identified with a Lagrange multiplier as follows.  It makes more sense in terms of order parameters than kets and field operators.
+
+The energy of a Bose gas is~$〈\hat H〉$.  We want to minimise it, given the constraint~$〈{\hat ψ}†\hat ψ〉=N$.  To do that, set~$∂〈\hat H〉/∂{\hat ψ}†$ parallel to~$∂N/∂{\hat ψ}†=\hat ψ$.  With Lagrange multiplier~$μ$, this gives a GP like equation.
+
+2019-08-27 BdG hermitianity and mode orthogonality 
+
+\begingroup
+\def\L{{\cal L}}
+
+The BdG equations have various forms, many of them confusing.  In Fetter's original \cite{aop-70-67}, it's tempting to assume~$\L$ and~$\L*$ are hermitian conjugates.  In fact, they are both hermitian operators.  I'll go with Equation~2 of \cite{prl-92-060407}.  Note that this was a classical sound wave treatment, and doesn't consider the normalisation of~$ψ₀$ with respect to the~$u$ and~$v$ modes.
+
+Let's identify a BdG mode with a column vector function~$|uv〉=\pmatrix{u&v}^{\rm T}$.  Then the eigenproblem is~$L|uv〉=ω|uv〉$, where the operator
+$$L=\pmatrix{\L&-gψ²\cr gψ^{2\ast}&-\L*}$$
+is not a hermitian matrix.  Instead, it satisfies~$L†=gLg†$, where~$g$ is the unitary matrix
+$$g=\pmatrix{1&0\cr0&-1}.$$
+If the inner product of BdG modes is defined with the Lorentz metric, 
+$$〈uv|u'v'〉=∫\pmatrix{u*&v*}·g·\pmatrix{u'\cr v'}=∫u*u'-∫v*v',$$
+the linear operator~$L$ satisfies
+$$(L|uv〉)†|u'v'〉=\left(L\pmatrix{u\cr v}\right)†·g·\pmatrix{u'\cr v'}
+	=\pmatrix{u*&v*}·L†g·\pmatrix{u'\cr v'}
+	=\pmatrix{u*&v*}·gL·\pmatrix{u'\cr v'}=〈uv|(L|u'v'〉),
+$$
+and the operator~$L$ is hermitian even though the matrix is not.
+
+It's tempting to use Wick rotation to make this hermitian in Euclidian space.  However, Wick rotation only works for real vectors; it has no effect on complex vectors with a conjugate-linear inner product.
+
+\endgroup
+
+2019-09-02 Factor of 2 in nnc
+
+Various GPE and BdG equations have a discrepency between the repulsion from the condensate and non-condensate atoms.  Typically, the repulsion term looks like~$(g|ψ₀|²+2gn_{nc})ψ$, where~$ψ₀$ might be a~$u$ or~$v$.
+
+This term comes from a binomial expression~$(ψ₀+\hat ψ_{nc})†(ψ₀+\hat ψ_{nc})²$, and the factor of 2 is simply a binomial coefficient.
+
+See Section 3.1 of \cite{2009-Griffin-Bose} for a discussion of the HFB and HFBP approximations.
+
+2019-09-03 Grid convergence
+
+The file {\tt converge.jld} has a table of numerical results for the sound wave modes of a rotating trap with a vortex, as the extent and step of the grid vary.  The most important results are the order-parameter angular momentum~$L$, which should be 1, and the frequency~$ω₂$ of the Kelvin mode, which should be small.
+
+The first “standard” grid was length 21 with step 0.3, finite differences with length 7 finite stencil, and relaxation to rounding errors.  This was made worse in each way, while keeping the others the same.
+
+With~$h=0.3$, a length~$10.5$ grid has~$L= 0.987991$, and increasing this to~$21$ changes~$L$ to 0.987989, which is slightly worse!
+
+The finite difference stencil has a small effect on~$L$, but changes the first digit of~$ω₂$.  This is more evidence that the standard grid has an excessively small step size.  Longer stencils might win when we push the grid step further.
+
+With a length 7 stencil, increasing the grid step from 0.3 to 0.4 reduces~$L$ from 0.988 to 0.979, and doubling it to 0.6 gives 0.953.  
+
+These results suggest choosing a smaller domain and grid step.  Length 14 with step 0.2 gives~$L=0.995$, better than $L=0.988$ for the standard grid.
+
+For the standard grid, relaxing the order parameter to a residual of~$10^{-10}$ gives~$L$ and~$ω₂$ converged to 6 figures, but~$L=0.988$ is wrong in the second digit.  With these grids, we're wasting time getting th last few digits of relaxation.
+
+For the main simulations, efficiency is a big issue, and there are 4 axes to optimise.  We know that the solutions are roughly harmonic trap eigenstates with fixed angular momentum.  It might be worth doing some analytical work on how the numerical~$L$ and energy converge with~$H$, $h$ and stencil length in those states.
+
+2019-09-10 Stationary currents
+
+Suppose that an equilibrium order parameter has the form~$ψ(r)=e^{iS(r)}f(r)$, where~$f$ is real.  Using the Laplacian product rule
+$$∇²ψ=e^{iS}∇²f(r)+f∇²e^{iS}+2ie^{iS(r)}∇S·∇f$$
+(simplify)
+
+Hopefully, this will be larger than~$∇²f$.  Showing that, in the absence of vortices, you can unwind~$e^{iS(r)}$ to get a lower energy state with a real order parameter.
+
+2019-09-20 Meeting Tapio
+
+There is a scaling issue with the BdG eigenproblem.  If I switch from normalising with~$∥ψ∥²=1$ to~$∥ψ∥²=N_c$, and adjust the repulsion constant accordingly, the BdG operator is unchanged.  If the modes are normalised in the usual way, I get the same numerical value for~$N_{nc}$.  However, this is multiplied by a different repulsion constant, so a self-consistent thermal cloud with one scaling is inconsistent with the other.  I need to go back to Fetter and work through this, with both approaches.
+
+For small trap rotation frequency~$Ω$, the equilibrium order parameter is a gaussian cloud.  For faster rotation, it becomes a vortex.  An interesting situation occurs at the cross over point, where the ground-state order parameter is degenerate.  This wreaks numerical havok.
+
+Physically, the Kelvin mode at the cross over is interesting.  For slow rotation, there is a meta-stable vortex with a co-rotating Kelvin mode.  For fast rotation, there is a stable vortex with a counter-rotating Kelvin mode.  These Kelvin modes are duals under the~$ω→-ω$, $(u,v)→(v*,u*)$.  There is a~$L=0$ component and a~$L=2$ component, but which is~$u$ and which~$v$ swaps over.  Exactly at the cross over, the “Kelvin” mode has two components with~$L=0$, and it becomes the degenerate zero mode.
+
+Going the other way, if we're in the gaussian ground state, the vortex mode passes through degeneracy at the critical value of~$Ω$.  This causes sea-like waves on the surface of the trap, which can build up, “break” due to nonlinearity, and become a vortex.
+
+It would be interesting to see how the two degenerate sets of BdG modes relate to each other at the degeneracy.
+
+Tapio wants me to solve the BdG equation of motion, with the self-consistent modes as an initial condition.  Apparently numerical lack of convergence is enough to intialise some dynamics.
+
+2019-10-02 Fake dynamics
+
+It's obvious how to do fake dynamics in the pure-condensate approximation.  You just add the mode amplitude to the condensate amplitude.  It's a bit less obvious how to add a rotating mode to a self-consistent thermal cloud.
+
+In the static case, the non-condensate density is~$∑_i|v_i|²$.  Each term comes from evaluating~$〈a†_ja_j〉=|v_j|²$, where~$a_j=u_j\hat b_j-v*_j\hat b†_j$, and the~$b_j$ mode is in a vacuum state.  The obvious thing is to replace the vacuum state with a coherent state~$|ae^{iω_jt}〉$, to give
+$$〈a†_ja_j〉=a²|u_je^{iω_jt}-v*_je^{-iω_jt}|²+|v_j|².$$
+More precisely, the density should be evaluated from~$\hat ψ†\hat ψ$, where~$\hat ψ=ψ₀+∑_ju_j\hat b_j-v*_j\hat b†_j$.  Expectation values such as~$〈ψ*₀(u_j\hat b_j-v*_j\hat b†)〉$ are non-zero for the coherent mode, so there will be interference terms.
+
+2019-10-23 Met Tapio and Andrew
+
+For a trapped Bose gas, the hamiltonian is constant, so it isn't clear what Berry phase means.  The idea is a vortex can been seen as a particle, whose dynamics are determined by the order parameter.  The order parameter evolves with time, and this modulates the hamiltonian.
+
+The group theory and symmetry of the Kelvin-T modes has been a research topic for a decade.  There should be a way to predict the phases of the vortex motions from first principles.
+
+In the fast rotation limit~$Ω→ω_\perp$, the lines of BdG modes become Landau levels.  Tapio thinks that the Kelvin-T modes become bulk states in a superconducting gap function that would explain the fractional Hall effect.  He suggests I read pages 400-500 of Fetter and Waleka, about superconductivity.
+
+Andrew is using the projected GPE and some of the Otago phase space methods.
+
+Kelvin modes can be approximated by a Bessel function and a Gauss-Laguerre mode.  (G-L is the name for the angular momentum eigenstates of the 2D harmonic oscillator.)
+
+There is a series of papers by Ao and Thouless on vortices and Berry phase.  Tapio claims that Haldane has been involved too.
+
+\bye

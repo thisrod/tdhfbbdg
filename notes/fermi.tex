@@ -1,0 +1,44 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Bogoliubov theory for fermions
+
+In a system of fermions, there is no order parameter.  Therefore
+the only density is the thermal density.  Instead of a Gross-Pitaveskii
+equation, there is a Hartree equation, which looks very similar.
+The density can be initialised by a Thomas-Fermi method.  The fermion
+density is nonlinear in the chemical potential, but this is well
+understood.
+
+The BdG problem is very similar, except that some things change
+sign.  In the BdG matrix, the off diagonal parts have a pair
+potential~$Δ$ in place of the condensate wave function.  This is
+an anomalous density.  Apparently, the Popov approximation doesn't
+work for fermions, and I'll need to use Hartree-Fock-Bogoliubov.
+
+The fermion modes have a gap.  There are quantised angular momenta
+as with bosons, but a large density of states in each angular
+momentum above the gap.  There is no Kelvin mode, so the convergence
+is better: small changes in the Kelvin mode energy cause big changes
+in the thermal density.
+
+2019-10-22
+
+The BdG equations for fermions have the form
+$$\left(-{1\over 4E_f}∇²-E_f\right)u_j + Δv_j = ω_ju_j$$
+and 
+$$-\left(-{1\over 4E_f}∇²-E_f\right)v_j + Δ*u_j = ω_jv_j.$$
+
+An obvious idea is to set~$Δ=0$, and iterate to self-consistency.
+Unfortunately, the BdG problem has solutions~$Δ=0$, $u_j=φ_j$,
+$v_j=0$, where~$φ_j$ is an eigenstate of the hamiltonian, and
+similarly~$u_j=0$, $v_j=φ_j$, and this is a fixed point of~$Δ$.
+
+Tapio suggests the alternative of setting~$Δ$ to the density of an
+ideal fermi gas.  In my units, this is~$n={1\over 4π²}(E_f-V)^{3/2}$.
+That seems to work.
+
+\bye

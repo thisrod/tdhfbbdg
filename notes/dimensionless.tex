@@ -1,0 +1,36 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Dimensionless units
+
+Start with some identities for Gaussians.  The normal distribution
+with standard deviation~$σ(t)$ is
+$$φ(x,t) = {e^{-x²/2σ²}\over √{2π}σ}.$$
+This is normalised with~$∫φ=1$.  It satisfies
+$$φ_t = \left({x²\over σ²}-1\right){φ\over σ}\dot σ
+	\qquad{\rm and}\qquad
+	φ_{xx} = \left({x²\over σ²}-1\right){φ\over σ²}.
+$$
+So the heat equation~$φ_t=φ_{xx}$ has solution~$σ(t)=√{2t}$, which
+satisfies~$\dot σ={1\over σ}$.
+
+The corresponding wave function is
+$$ψ(x) = {e^{-x²/2σ²}\over √{π}σ},$$
+with~$∫ψ²=1$.  This satisfies
+$$ψ_x = -{x\over σ²}ψ
+	\qquad{\rm and}\qquad
+	ψ_{xx} = {1\over σ²}\left({x²\over σ²}-1\right)ψ.
+$$
+
+I have been using a 1D harmonic oscillator Hamiltonian of~$H=-D_{xx}+x²$.
+The normal choice is~$H=½(-D_{xx}+x²)$, obtained by setting~$ℏ=m$
+and~$ω=1$.  The eigenstate is clearly the same in both cases,
+with~$σ=1$.  This gives~$ψ₀(x)=π^{-1\over 4}e^{-x²/2}$, and, in 2D,
+$ψ₀(x,y)=ψ₀(x)·ψ₀(y)={1\over √π}e^{-(x²+y²)/2}$.  The normal
+hamiltonian, with~$ω=1$, has eigenvalue~$½$ in 1D and~$1$ in 2D.
+My choice gives double those.
+
+\bye

@@ -1,0 +1,23 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title Berry phase
+
+2019-10-21
+
+A quantum system whose hamiltonian is independent of time has dynamics
+$$|ψ(t)〉=∑_n |ψ_n〉e^{-iω_nt},$$
+where~$|ψ_n〉$ is the eigenstate with energy~$ℏω_n$.  Things are different when the hamiltonian changes with time.  However, there are still eigenstates such that
+$$\hat H(t)|ψ_n(t)〉=ℏω_n(t),$$
+and in the adiabatic limit, I might guess that
+$$|ψ(t)〉=∑_n |ψ_n〉e^{-iφ_n(t)},$$
+where~$\dot φ_n=ω_n$.
+
+In fact, for some “topological” systems, the phase picks up an extra term, 
+$$φ_n = ∫ω_n + φ_c,$$
+where, in the adiabatic limit, $φ_c$ only depends on the path drawn out by the Hamiltonian and the topology of the parameter space.  The challenge with Andrew Groszek and Tapio is to define this geometric phase when the time-dependent dynamics are caused by a vortex moving in a trap.
+
+\bye
