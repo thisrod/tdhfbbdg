@@ -10,7 +10,8 @@
 \title Bogoliubov sound wave dynamics
 
 In parallel with implementing Bogoliubov dynamics numerically, I'm
-trying to understand what they mean.
+trying to understand what they mean.  The derivation is in
+\cite{prl-87-230403}, but no one has solved the resulting equations.
 
 The standard Bose gas hamiltonian is
 $$\\H = ∫\\ψ†\Hone\\ψ + {g\over 2}\\ψ^{2\dagger}\\ψ²\,dx.$$
@@ -87,11 +88,35 @@ no effect on complex vectors with a conjugate-linear inner product.
 The orbiting vortex is not static, but there is some sense in which
 the order parameter changes slowly.  The papers \cite{pra-68-033611}
 and \cite{prl-87-230403} use a criterion~$∥{∂ψ\over ∂t}∥/∥ψ∥$ to
-evaluate this.  For example, they can vary the radius of an offset
+evaluate this.  Somehow, they make that come out as a number, even
+though~$t$ has dimensions at that point in the paper.  I should
+think about the natural time scale for that.  A likely candidate
+is the period of the Kelvin mode.
+
+For example, they can vary the radius of an offset
 vortex, and see how this changes.  This value is very similar to
 the~$〈μ〉$ that Tapio and I have talked about; what would be really
-interesting is the residual $(∂\over ∂t}-〈μ〉)ψ$.  That's the
+interesting is the residual $({∂\over ∂t}-〈μ〉)ψ$.  That's the
 residual that SOR is trying to minimise.  It would be interesting
 to see how well SOR minimises it, and if other methods do any better.
+
+The treatment in \cite{pra-68-033611} is clever.  The Bose gas is
+treated in a rotating frame, and a search is made for a stationary
+order parameter with a given chemical potential.  For an appropriate
+rotation rate, there are at least these three solutions: a gas
+without vortices, a single vortex on the rotation axis, and an
+offset vortex.  The offset radius~$R$ is determined by the need for
+orbital frequency of the vortex to match the frame rotation rate,
+so that the vortex is stationary in the rotating frame.
+
+It is unclear if the offset vortex is exactly stationary in the
+rotating frame, or just nearly stationary.  I should test that.  If
+it is exactly stationary, the Berry phase of a phonon gets quite
+interesting, because everything is stationary in the rotating frame.
+The geometric phase must come from the~$Ω×L$ term in the transformation
+back to the lab frame.  There is a relation between~$L$ and the
+number of atoms outside the vortex orbit, and this must combine
+with the relation between~$Ω$ and~$R$ to make the integrated phase
+over an orbit come out to the number of atoms enclosed.
 
 \bye
