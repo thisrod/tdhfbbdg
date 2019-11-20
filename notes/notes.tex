@@ -6,43 +6,6 @@
 
 \title Log of Bogoliubov dynamics work for Tapio
 
-\beginsection{Physics Goals}
-
-There are a couple of science goals to this project.  An initial one is to find out how the mass of a vortex, in the classical dynamics model, depends on the radius at which it is orbiting the condensate.  There is a “buoyancy force” on the vortex, pushing it in the direction of lower atomic density, towards the edge of the condensate.  Its mass can be determined from the speed at which it orbits.  This is what the ARC has been told we will do.
-
-The eventual goal is to run these simulations with fermions, and work with Chris and the two-dimensional Dyscope.
-
-\beginsection{Numerical Goals}
-
-The initial goal is to solve the BdG equations statically, in 2D,
-with an arbitrary potential.  This has two goals.  The first is Fred Brooks's “build
-one to throw away.”  The second is to have a simple and correct
-prototype, to validate the complicated ones that I'm going to build
-later.
-
-Later, the idea is to propagate the sound wave modes in parallel.
-Apparently each mode follows GPE dynamics, coordinated by a common
-density.  
-
-\item{1.} Solve very precisely for the equilibrium order parameter.
-The Bogoliubov modes are very sensitive to its chemical potential.
-Tapio knows an efficient way to do this, called Successive Over Relaxation.
-
-\item{2.} Set up a whopping great numerical derivative matrix.
-
-\item{3.} Diagonalise.  We want all the eigenfunctions, so it isn't
-clear that Krylov subspace methods will do better than dense methods.
-
-\item{4.} Calculate the non-condensate density due to the sound wave modes, and repeat from Step~1 until convergence.
-
-Once the order parameter has converged and the propagation has
-stopped, it is a good idea to test the residual of the GPE.  This
-will show up any systematic errors of that type.
-
-The existing code from my PhD, {\tt https://github.com/thisrod/drugs/blob/master/bec/buv.m}, turned out not to be much use.  The order parameter needs to be solved much more precisely than that code was able to.
-
-Now that I have a good 2D Bogoliubov code, I could go back to the Vienna trap problem.  The problems with the Bogoliubov ground state and the full potential still apply.
-
 \beginsection{Software Optimisation}
 
 Bogdan has code to solve lots of GPEs in parallel for
@@ -96,38 +59,6 @@ the modes.
 Network complexity shouldn't be an issue.  Only the total density
 has to be communicated, and the boundary conditions if the FDV
 parallelism is exploited.
-
-\beginsection{Julia}
-
-The {\tt CUArrays} package implements broadcasting on GPU arrays, with GPU kernel generation.  No idea how that works, but nifty.
-
-The packages {\tt DifferentialEquations.jl} and {\tt ModelingToolkit.jl} are where active development is happening on PDEs and discretisation.  Finite differences are under active development.  See Issue~469 on {\tt DifferentialEquations.jl}.
-
-The blog at {\tt http://www.stochasticlifestyle.com/} is useful, especially {\tt http://www.stochasticlifestyle.com/solving-systems-stochastic-pdes-using-gpus-julia/}
-
-The {\tt JLD} package annotates HDF5 files with Julia type information.
-
-The Julia type system has some quirks.  The interpreter accepts {\tt Array`{Any, π`}()}, but this throws an error that {\tt show} throws another error when it tries to print!  There is an undocumented type {\tt Val`{x`}}, which has the property {\tt Val`{x`} isa Type`{Val`{x`}`}}.  By contrast, it is not the case that {\tt 1 isa Type`{1`}} for values that are not types.  This allows method dispatch on specific values.  You can do {\tt Val`{X`} where X} as a default method, and define special cases.  It's unclear why you would do that instead of defining a function.
-
-{\tt Makie.jl} sounds interesting for interactive plots.
-
-The project at {\tt juliadiff.org} does automatic differentiation.
-
-{\tt FiniteDifferenceDerivatives} gives the coefficients for arbitrary grids, powers and stencils.  (What happens when you derive finite-difference formulae for a Chebyshev grid?)
-
-There is a {\tt JuliaFormatter.jl} inspired by {\tt gofmt}.
-
-{\tt ClusterManager.jl} supports SLURM.
-
-There is a package {\tt ComplexPhasePortrait} to display phase as colour.  This outputs an array of {\tt ColorTypes.RGB} objects, and it isn't clear how to get that displayed on screen.
-
-The {\tt Compose} library is basically a backend for {\tt Gadfly}.
-
-There is a {\tt ::Val[N]} method selector that isn't documented anywhere.  It seems to work for integers and symbols.
-
-The {\tt JuliaGraphics} project does what it says.  There is a {\tt GGPlots} addon to do grammar of graphics in {\tt Plots}, but that is WIP.
-
-My current plan is to work with {\tt Plots.jl} and whatever backend works for PDF, but put some time in to developing and documenting Gadfly and Compose.  Could do a MetaPost backend, which exports the data and leaves you to define some macros to draw it.
 
 \beginsection{Verification}
 
@@ -461,30 +392,6 @@ This is very likely to happen when a vortex is squashed into too small a box by 
 With a bit of hand waving about functional derivatives and Wirtinger calculus, the chemical potential can be identified with a Lagrange multiplier as follows.  It makes more sense in terms of order parameters than kets and field operators.
 
 The energy of a Bose gas is~$〈\hat H〉$.  We want to minimise it, given the constraint~$〈{\hat ψ}†\hat ψ〉=N$.  To do that, set~$∂〈\hat H〉/∂{\hat ψ}†$ parallel to~$∂N/∂{\hat ψ}†=\hat ψ$.  With Lagrange multiplier~$μ$, this gives a GP like equation.
-
-2019-08-27 BdG hermitianity and mode orthogonality 
-
-\begingroup
-\def\L{{\cal L}}
-
-The BdG equations have various forms, many of them confusing.  In Fetter's original \cite{aop-70-67}, it's tempting to assume~$\L$ and~$\L*$ are hermitian conjugates.  In fact, they are both hermitian operators.  I'll go with Equation~2 of \cite{prl-92-060407}.  Note that this was a classical sound wave treatment, and doesn't consider the normalisation of~$ψ₀$ with respect to the~$u$ and~$v$ modes.
-
-Let's identify a BdG mode with a column vector function~$|uv〉=\pmatrix{u&v}^{\rm T}$.  Then the eigenproblem is~$L|uv〉=ω|uv〉$, where the operator
-$$L=\pmatrix{\L&-gψ²\cr gψ^{2\ast}&-\L*}$$
-is not a hermitian matrix.  Instead, it satisfies~$L†=gLg†$, where~$g$ is the unitary matrix
-$$g=\pmatrix{1&0\cr0&-1}.$$
-If the inner product of BdG modes is defined with the Lorentz metric, 
-$$〈uv|u'v'〉=∫\pmatrix{u*&v*}·g·\pmatrix{u'\cr v'}=∫u*u'-∫v*v',$$
-the linear operator~$L$ satisfies
-$$(L|uv〉)†|u'v'〉=\left(L\pmatrix{u\cr v}\right)†·g·\pmatrix{u'\cr v'}
-	=\pmatrix{u*&v*}·L†g·\pmatrix{u'\cr v'}
-	=\pmatrix{u*&v*}·gL·\pmatrix{u'\cr v'}=〈uv|(L|u'v'〉),
-$$
-and the operator~$L$ is hermitian even though the matrix is not.
-
-It's tempting to use Wick rotation to make this hermitian in Euclidian space.  However, Wick rotation only works for real vectors; it has no effect on complex vectors with a conjugate-linear inner product.
-
-\endgroup
 
 2019-09-02 Factor of 2 in nnc
 

@@ -10,7 +10,9 @@
 
 A quantum system whose hamiltonian is independent of time has dynamics
 $$|ψ(t)〉=∑_n |ψ_n〉e^{-iω_nt},$$
-where~$|ψ_n〉$ is the eigenstate with energy~$ℏω_n$.  Things are different when the hamiltonian changes with time.  However, there are still eigenstates such that
+where~$|ψ_n〉$ is the eigenstate with energy~$ℏω_n$.  Things are
+different when the hamiltonian changes with time.  However, there
+are still eigenstates such that
 $$\hat H(t)|ψ_n(t)〉=ℏω_n(t),$$
 and in the adiabatic limit, I might guess that
 $$|ψ(t)〉=∑_n |ψ_n〉e^{-iφ_n(t)},$$
@@ -18,6 +20,32 @@ where~$\dot φ_n=ω_n$.
 
 In fact, for some “topological” systems, the phase picks up an extra term, 
 $$φ_n = ∫ω_n + φ_c,$$
-where, in the adiabatic limit, $φ_c$ only depends on the path drawn out by the Hamiltonian and the topology of the parameter space.  The challenge with Andrew Groszek and Tapio is to define this geometric phase when the time-dependent dynamics are caused by a vortex moving in a trap.
+where, in the adiabatic limit, $φ_c$ only depends on the path drawn
+out by the Hamiltonian and the topology of the parameter space.
+The challenge with Andrew Groszek and Tapio is to define this
+geometric phase when the time-dependent dynamics are caused by a
+vortex moving in a trap.
+
+2019-11-14
+
+I'm reading Berry's paper, \cite{rsa-392-45}.  The key result is
+that, where a hamiltonian~$H(R)$ depends on a set of parameters~$R$,
+there is a “phase” two-form in parameter space, and the geometric
+phase around a circuit is the integral of its exterior derivative
+around the circuit/of it over any surface bounded by the circuit.
+
+In the orbiting vortex case, the parameter is the order parameter~$ψ₀$
+(or the vortex location, which determines the order parameter).
+The hamiltonian~$H(ψ₀)$ is presumably the Bogoliubov approximate
+hamiltonian.  We could create a quasiparticle in any mode, then see
+how the phase of that excited state changes as the vortex does a
+lap of the trap.
+
+There's a wierdness here.  The Bogoliubov hamiltonian is supposed
+to be a good approximation to the atomic field hamiltonian, which
+doesn't change as the vortex orbits.  Maybe there is always some
+ambiguity as to what is a classical parameter and what is a property
+of the quantum state.  So how does Berry phase work when you're
+changing the quantum state?
 
 \bye

@@ -1,0 +1,40 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title The Julia package ecosystem
+
+The {\tt CUArrays} package implements broadcasting on GPU arrays, with GPU kernel generation.  No idea how that works, but nifty.
+
+The packages {\tt DifferentialEquations.jl} and {\tt ModelingToolkit.jl} are where active development is happening on PDEs and discretisation.  Finite differences are under active development.  See Issue~469 on {\tt DifferentialEquations.jl}.
+
+The blog at {\tt http://www.stochasticlifestyle.com/} is useful, especially {\tt http://www.stochasticlifestyle.com/solving-systems-stochastic-pdes-using-gpus-julia/}
+
+The {\tt JLD} package annotates HDF5 files with Julia type information.
+
+The Julia type system has some quirks.  The interpreter accepts {\tt Array`{Any, π`}()}, but this throws an error that {\tt show} throws another error when it tries to print!  There is an undocumented type {\tt Val`{x`}}, which has the property {\tt Val`{x`} isa Type`{Val`{x`}`}}.  By contrast, it is not the case that {\tt 1 isa Type`{1`}} for values that are not types.  This allows method dispatch on specific values.  You can do {\tt Val`{X`} where X} as a default method, and define special cases.  It's unclear why you would do that instead of defining a function.
+
+{\tt Makie.jl} sounds interesting for interactive plots.
+
+The project at {\tt juliadiff.org} does automatic differentiation.
+
+{\tt FiniteDifferenceDerivatives} gives the coefficients for arbitrary grids, powers and stencils.  (What happens when you derive finite-difference formulae for a Chebyshev grid?)
+
+There is a {\tt JuliaFormatter.jl} inspired by {\tt gofmt}.
+
+{\tt ClusterManager.jl} supports SLURM.
+
+There is a package {\tt ComplexPhasePortrait} to display phase as colour.  This outputs an array of {\tt ColorTypes.RGB} objects, and it isn't clear how to get that displayed on screen.
+
+The {\tt Compose} library is basically a backend for {\tt Gadfly}.
+
+There is a {\tt ::Val[N]} method selector that isn't documented anywhere.  It seems to work for integers and symbols.
+
+The {\tt JuliaGraphics} project does what it says.  There is a {\tt GGPlots} addon to do grammar of graphics in {\tt Plots}, but that is WIP.
+
+My current plan is to work with {\tt Plots.jl} and whatever backend works for PDF, but put some time in to developing and documenting Gadfly and Compose.  Could do a MetaPost backend, which exports the data and leaves you to define some macros to draw it.
+
+\bye
+

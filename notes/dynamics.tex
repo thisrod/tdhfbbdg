@@ -1,0 +1,97 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+\def\\{\hat}
+\def\hone{-{∇²\over 2}+V}
+\def\Hone{\left(\hone\right)}
+
+\title Bogoliubov sound wave dynamics
+
+In parallel with implementing Bogoliubov dynamics numerically, I'm
+trying to understand what they mean.
+
+The standard Bose gas hamiltonian is
+$$\\H = ∫\\ψ†\Hone\\ψ + {g\over 2}\\ψ^{2\dagger}\\ψ²\,dx.$$
+Throughout this file, I'll assume that~$μ\\N$ has been absorbed
+into~$V$.  When I do Bogoliubov dynamics, I'm representing~$\\ψ$ in
+the form
+$$\\ψ(x,t)=φ(x,t)\\a(t)+∑_ju_j(t,x)\\b_j(t)-v*_j(x,t)\\b†_j(t).$$
+I'm going to suppose that this operator is in the Heisenberg picture.
+It has time as an argument, so it looks that way, and the whole
+idea of a dynamical order parameter makes more sense in the Heisenberg
+picture, where I can defer the question of whether~$\\a$ acts
+on a number state or a coherent state.
+
+I'm hoping to diagonalise the Hamiltonian.  That is to say, I want
+a set of modes whose annihilation operators have
+dynamics~$b_j(t)=b_je^{iω_jt}$.  Later on, I might interpret~$\\ψ(x,t)$
+as an interaction picture operator, and think about the dynamics
+of the mode occupations.  But that's getting ahead of myself.
+
+When~$\\ψ(x,t)$ is substituted into the Hamiltonian, I get
+$$\\H(x,t)=φ*\Hone φ\\a†\\a + {g\over2}|φ|⁴\\a^{2\dagger}\\a²
+	+ δ\\ψ†\\a†\left(\hone+g|φ|²\\a†\\a\right)φ\\a + {\rm h.c.}
+	+ δ\\ψ†\Hone δ\\ψ
+	+ {g\over2}\left(δ\\ψ^{2\dagger}φ²\\a² + {\rm h.c.}\right)
+	+ 2g|φ|²\\a†\\a δ\\ψ†δ\\ψ
+	+ O(δ\\ψ³).
+$$
+
+The first step is to reproduce the GPE from the~$\\a†\\a$ part.
+
+Peter Drummond has a trick to get rid of the quartic term.
+
+2019-08-27 BdG hermitianity and mode orthogonality 
+
+\begingroup
+\def\L{{\cal L}}
+
+The BdG equations have various forms, many of them confusing.  In Fetter's original \cite{aop-70-67}, it's tempting to assume~$\L$ and~$\L*$ are hermitian conjugates.  In fact, they are both hermitian operators.  I'll go with Equation~2 of \cite{prl-92-060407}.  Note that this was a classical sound wave treatment, and doesn't consider the normalisation of~$ψ₀$ with respect to the~$u$ and~$v$ modes.
+
+Let's identify a BdG mode with a column vector function~$|uv〉=\pmatrix{u&v}^{\rm T}$.  Then the eigenproblem is~$L|uv〉=ω|uv〉$, where the operator
+$$L=\pmatrix{\L&-gψ²\cr gψ^{2\ast}&-\L*}$$
+is not a hermitian matrix.  Instead, it satisfies~$L†=gLg†$, where~$g$ is the unitary matrix
+$$g=\pmatrix{1&0\cr0&-1}.$$
+You get back where you started by conjugating the matrix, then flipping the sign of the second row and the second column.  (The first column would do just as well.)
+
+If the inner product of BdG modes is defined with the Lorentz metric, 
+$$〈uv|u'v'〉=∫\pmatrix{u*&v*}·g·\pmatrix{u'\cr v'}=∫u*u'-∫v*v',$$
+the linear operator~$L$ satisfies
+$$(L|uv〉)†|u'v'〉=\left(L\pmatrix{u\cr v}\right)†·g·\pmatrix{u'\cr v'}
+	=\pmatrix{u*&v*}·L†g·\pmatrix{u'\cr v'}
+	=\pmatrix{u*&v*}·gL·\pmatrix{u'\cr v'}=〈uv|(L|u'v'〉),
+$$
+and the operator~$L$ is hermitian even though the matrix is not.
+
+If~$|uv〉$ and~$|u'v'〉$ are eigenvectors of~$L$, with eigenvalues~$ω$ and~$ω'$, then
+$$ω*〈uv|u'v'〉=ω'〈uv|u'v'〉.$$
+It follows that, {\it unless~$|uv〉$ is a zero mode,} the eigenvalue
+is real.  Also, different modes must be orthogonal unless their
+eigenvalues are conjugate.
+
+Note that adding a chemical potential~$μ$ to~$H$ changes~$L$ to~$L+μg$.  Then
+$$〈uv|L+μg|uv〉=ω+μ〈uv|uv〉₊,$$
+where~$+$ denotes the Euclidean inner product.  This can set the
+real part of~$ω$ to zero, but does not change the imaginary part.
+
+It's tempting to use Wick rotation to make this hermitian in Euclidian
+space.  However, Wick rotation only works for real vectors; it has
+no effect on complex vectors with a conjugate-linear inner product.
+
+\endgroup
+
+2019-11-20
+
+The orbiting vortex is not static, but there is some sense in which
+the order parameter changes slowly.  The papers \cite{pra-68-033611}
+and \cite{prl-87-230403} use a criterion~$∥{∂ψ\over ∂t}∥/∥ψ∥$ to
+evaluate this.  For example, they can vary the radius of an offset
+vortex, and see how this changes.  This value is very similar to
+the~$〈μ〉$ that Tapio and I have talked about; what would be really
+interesting is the residual $(∂\over ∂t}-〈μ〉)ψ$.  That's the
+residual that SOR is trying to minimise.  It would be interesting
+to see how well SOR minimises it, and if other methods do any better.
+
+\bye

@@ -1,0 +1,62 @@
+\input respnotes
+\input xpmath
+\input unifonts \tenrm
+
+\def\cite#1{{\tt #1}}
+
+\title History and goals of work with Tapio
+
+There are a couple of science goals to this project.  An initial
+one is to find out how the mass of a vortex, in the classical
+dynamics model, depends on the radius at which it is orbiting the
+condensate.  There is a “buoyancy force” on the vortex, pushing it
+in the direction of lower atomic density, towards the edge of the
+condensate.  Its mass can be determined from the speed at which it
+orbits.  This is what the ARC has been told we will do.
+
+The eventual goal is to run these simulations with fermions, and
+work with Chris and the two-dimensional Dyscope.
+
+\beginsection{Warming up}
+
+Tapio has spent the last decade calculating condensate sound wave
+modes in three dimensions.  This is numerically intensive.  The
+excited modes of a Bose-Einstein condensate are very sensitive to
+the condensate order parameter, so it must be relaxed to the
+equilibrium value wiht six-figure accuracy.  He often had simulations
+running for months on end, and the results of one simulation would
+be analysed in multiple papers.
+
+My initial goal was to repeat some of these calculations in 2D, and
+confirm that my Julia code is giving the known results.  I started
+by defining types for fields, derivative operators and mappings
+from frequencies to mode functions.  At some point I decided to
+start again from scratch, and see how simple this code be if it
+just used matrices and vectors.  It turned out that the whole thing
+fits in one screen, and this version was much more efficient than
+the abstracted one.  At some point I'll develop a nice wrapper for
+this, but it is useful to have a straightforward version to benchmark
+it against.
+
+\beginsection{Novel work}
+
+There are several directions to take this.
+
+Something that I can start at once is vortex lattice melting.  When
+the atomic density decreases, the quantum fluctuations should cause
+the vortices to form a liquid instead of a fixed lattice.  One sign
+of this would be that the thermal iterations do not converge to a
+self-consistent state, but keep finding different liquid states.
+The first requirement here is to get a converged solid lattice.
+
+One is to branch into fermions.  Chris Vale is building the Dyscope,
+and he could use simulations of what he might do with it.
+
+The core goal is dynamics.  The first physics problem is the Berry
+phase of a single vortex orbiting in a trap.
+
+Now that I have a good 2D Bogoliubov code, I could go back to the
+Vienna trap problem.  The problems with the Bogoliubov ground state
+and the full potential still apply.
+
+\bye
