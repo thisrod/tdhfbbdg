@@ -1,4 +1,4 @@
-# Single vortex modes to compare methods
+# Single vortex diagonalisation benchmark
 
 using LinearAlgebra, BandedMatrices, JLD2, Arpack
 using Plots, ComplexPhasePortrait, Printf
