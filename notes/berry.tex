@@ -48,4 +48,24 @@ ambiguity as to what is a classical parameter and what is a property
 of the quantum state.  So how does Berry phase work when you're
 changing the quantum state?
 
+2019-12-05
+
+The Berry phase of a vortex is a bit strange.  Let~$ψ$ and~$φ$ be the same order parameter.  Then the GPE can be written
+$$iℏψ_t=(-½∇²+V+C|φ|²)ψ.$$
+This has the form of a linear Schrödinger equation for the wave function~$ψ$, with~$φ$ as a parameter.
+
+In the strict Berry formalism, we're thinking about the eigenstates of the operator~$H_φ=-½∇²+V+C|φ|²$, as~$φ$ varies adiabatically.  That is all well defined, and no doubt gives the same answer as Haldane.  But if we know how the dynamics works, we can adjust the parameter~$φ(t)$ so that the dynamical~$ψ(t)=φ(t)$ is a solution to the GPE.  This~$ψ(t)$ can't be an exact eigenstate of~$H_{φ(t)}$, because it evolves in time, but if it evolves slowly it will be close to a eigenstate.
+
+A reasonable program would be:
+
+\item{1.} Solve the GPE for~$φ(t)$.
+
+\item{2.} Find the eigenstates of~$H_{φ(t)}$ as a function of time, and their geometric phases.
+
+\item{3.} Expand~$φ(t₀)$ over the eigenstates, and rotate the phases according to Berry.
+
+\item{3.} Expand~$φ(t₁)$ over the eigenstates, and compare.
+
+
+
 \bye
