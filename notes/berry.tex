@@ -82,4 +82,21 @@ way of saying that the homology is non-trivial.  In 3D, you can say
 that a point has gone around a line, but how many laps it has done
 around another point is ambiguous.
 
+2019-12-10 Discretisation
+
+Berry's formula 6 in \cite{rsa-392-45} is
+$$γ(C)=i∫_C〈n|∇n〉·dR,$$
+where~$C$ is a closed path in parameter space, and the gradient is
+taken with respect to the parameter set~$R$.
+
+Partition the path~$C$ as~$[R₀,R₁,…,R_m]$.  Then, on~$[R_j,R_{j+1}]$, 
+$$〈n|∇n〉·ΔR≈½(〈n(R_{j+1})|+〈n(R_j)|)·(|n(R_{j+1})〉-|n(R_j)〉)=〈n(R_j)|n(R_{j+1})〉.
+$$
+The last step relies on the value being purely imaginary, which is
+guaranteed by the states~$|n(R)〉$ being normalised.  The discrete
+integral comes out to
+$$γ(C)≈i∑_j〈n|∇n〉·ΔR≈-∑_j{\rm Im} 〈n_j|n_{j+1}〉.$$
+On a closed path, with an analytic~$γ$, this type of approximation
+is often spectrally convergent.
+
 \bye
