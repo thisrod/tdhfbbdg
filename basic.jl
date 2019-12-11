@@ -2,7 +2,7 @@
 
 using LinearAlgebra, BandedMatrices, JLD2
 
-zplot(ψ) = plot(y, y, portrait(ψ).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
+zplot(ψ) = plot(y, y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
 
 C = 10;  μ=20;  Ω=2*0.2
 h = 0.35;  N = 26
@@ -44,7 +44,7 @@ for _ = 1:2
     
     rsdl = []
     for _ = 1:200
-        copy!(ψ₀, ψ)
+        ψ₀ .= ψ
         for k = keys(ψ)
             i,j = Tuple(k)
             ψ[k] = 0
