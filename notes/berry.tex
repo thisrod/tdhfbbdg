@@ -89,13 +89,13 @@ $$γ(C)=i∫_C〈n|∇n〉·dR,$$
 where~$C$ is a closed path in parameter space, and the gradient is
 taken with respect to the parameter set~$R$.
 
-Partition the path~$C$ as~$[R₀,R₁,…,R_m]$.  Then, on~$[R_j,R_{j+1}]$, 
-$$〈n|∇n〉·ΔR≈½(〈n(R_{j+1})|+〈n(R_j)|)·(|n(R_{j+1})〉-|n(R_j)〉)=〈n(R_j)|n(R_{j+1})〉.
+Partition the path~$C$ as~$[R₀,R₁,…,R_m]$, and let~$|n_j〉≡|n(R_j)〉$.  Then, on~$[R_j,R_{j+1}]$, 
+$$〈n|∇n〉·ΔR≈½(〈n_{j+1}|+〈n_j|)·(|n_{j+1}〉-|n_j〉)=i{\rm Im}〈n_j|n_{j+1}〉.
 $$
-The last step relies on the value being purely imaginary, which is
-guaranteed by the states~$|n(R)〉$ being normalised.  The discrete
+The discrete
 integral comes out to
-$$γ(C)≈i∑_j〈n|∇n〉·ΔR≈-∑_j{\rm Im} 〈n_j|n_{j+1}〉.$$
+$$γ(C)≈i∑_j〈n|∇n〉·ΔR≈-∑_j{\rm Im} 〈n_j|n_{j+1}〉
+	=∑_j{\rm Im} 〈n_{j+1}|n_j〉.$$
 On a closed path, with an analytic~$γ$, this type of approximation
 is often spectrally convergent.
 
