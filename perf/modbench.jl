@@ -1,6 +1,6 @@
 # Single vortex diagonalisation benchmark
 
-using LinearAlgebra, BandedMatrices, JLD2, Arpack
+using LinearAlgebra, BandedMatrices, SparseArrays, JLD2, Arpack
 using Plots, ComplexPhasePortrait, Printf
 
 C = 10;  μ = 10;  Ω = 2*0.575
@@ -89,15 +89,22 @@ const BdGmat = [
 ]
 const trial_uv = [ψ[:]; ψ[:]]
 
-function apply_dense(n,uv)
+# Julia sparse matrices
+
+const BdGsparse = sparse(BdGmat)
+
+# matmul benchmarks
+
+function apply_op(M,n)
     for _ = 1:n
-        BdGmat * uv
+        M*trial_uv
     end
 end
 
-function apply_dense!(out,n,uv)
+function apply_op!(M,n)
+    out = similar(trial_uv)
     for _ = 1:n
-        mul!(out, BdGmat, uv)
+        mul!(out, M, trial_uv)
     end
 end
 
