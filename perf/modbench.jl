@@ -83,11 +83,24 @@ eye = Matrix(I,N,N)
 J = 1im*(repeat(y,1,N)[:].*kron(∂,eye)-repeat(x,N,1)[:].*kron(eye,∂))
 H = -kron(eye, ∂²) - kron(∂², eye) + diagm(0=>V[:]) - μ*Matrix(I,N^2,N^2)
 Q = diagm(0=>ψ[:]);  R = 2C*abs2.(Q)
-BdGmat = [
+const BdGmat = [
     H+R-Ω*J    C*Q.^2;
     -C*conj.(Q).^2    -H-R-Ω*J
 ]
-    
+const trial_uv = [ψ[:]; ψ[:]]
+
+function apply_dense(n,uv)
+    for _ = 1:n
+        BdGmat * uv
+    end
+end
+
+function apply_dense!(out,n,uv)
+    for _ = 1:n
+        mul!(out, BdGmat, uv)
+    end
+end
+
 # # spectrum by brute force
 #     
 # println("Dense matrix and brute force")
