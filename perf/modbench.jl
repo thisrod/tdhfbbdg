@@ -88,39 +88,39 @@ BdGmat = [
     -C*conj.(Q).^2    -H-R-Ω*J
 ]
     
-# spectrum by brute force
-    
-println("Dense matrix and brute force")
-@time s = eigen(BdGmat)
-ev = s.vectors
-# This way seems to beat the rounding
-unms = h^2*sum(abs2.(ev[1:N^2,:]), dims=1)
-vnms = h^2*sum(abs2.(ev[N^2+1:end,:]), dims=1)
-nsq = unms .- vnms
-ixs = sortperm(nsq[:], by=abs)
-ixs = ixs[1:10]
-ωs = s.values[ixs]
-
-# L = (ψ[:]'*J*ψ[:])/norm(ψ)^2
-
-# Jev = collect(real(ev[:,i]'*[J zero(J);  zero(J) J]*ev[:,i]-L/h^2)/norm(ev[:,i])^2 for i = 1:length(ωs))
-
-Umd(i) = reshape(ev[1:N^2,i], N, N)
-Vmd(i) = reshape(ev[N^2+1:end,i], N, N)
-
-# nsq = [h^2*sum(abs2.(Umd(i))-abs2.(Vmd(i))) for i = eachindex(ωs)]
-
-zplot(ψ) = plot(y, y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
-zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
-
-function showmode(i)
-	M = scatter(Jev[nsq[:].≥0], real.(ωs[nsq[:].≥0]) ./ 2, mc=:black, ms=3, msw=0, leg=:none)
-	scatter!(M, Jev[nsq[:].<0], real.(ωs[nsq[:].<0]) ./ 2, mc=:green, ms=3, msw=0, leg=:none)
-	scatter!(M, Jev[i:i], real.(ωs[i:i]) / 2, mc=:red, ms=4, msw=0, leg=:none)
-	title!(M, @sprintf("%.0f, w = %.4f, J = %.3f", nsq[i], real(ωs[i])/2, Jev[i]))
-	U = zplot(Umd(i))
-	title!(U, "u")
-	V = zplot(Vmd(i))
-	title!(V, @sprintf("%.1e * v*", norm(Umd(i))/norm(Vmd(i))))
-	plot(M, U, V, layout=@layout [a; b c])
-end
+# # spectrum by brute force
+#     
+# println("Dense matrix and brute force")
+# @time s = eigen(BdGmat)
+# ev = s.vectors
+# # This way seems to beat the rounding
+# unms = h^2*sum(abs2.(ev[1:N^2,:]), dims=1)
+# vnms = h^2*sum(abs2.(ev[N^2+1:end,:]), dims=1)
+# nsq = unms .- vnms
+# ixs = sortperm(nsq[:], by=abs)
+# ixs = ixs[1:10]
+# ωs = s.values[ixs]
+# 
+# # L = (ψ[:]'*J*ψ[:])/norm(ψ)^2
+# 
+# # Jev = collect(real(ev[:,i]'*[J zero(J);  zero(J) J]*ev[:,i]-L/h^2)/norm(ev[:,i])^2 for i = 1:length(ωs))
+# 
+# Umd(i) = reshape(ev[1:N^2,i], N, N)
+# Vmd(i) = reshape(ev[N^2+1:end,i], N, N)
+# 
+# # nsq = [h^2*sum(abs2.(Umd(i))-abs2.(Vmd(i))) for i = eachindex(ωs)]
+# 
+# zplot(ψ) = plot(y, y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
+# zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
+# 
+# function showmode(i)
+# 	M = scatter(Jev[nsq[:].≥0], real.(ωs[nsq[:].≥0]) ./ 2, mc=:black, ms=3, msw=0, leg=:none)
+# 	scatter!(M, Jev[nsq[:].<0], real.(ωs[nsq[:].<0]) ./ 2, mc=:green, ms=3, msw=0, leg=:none)
+# 	scatter!(M, Jev[i:i], real.(ωs[i:i]) / 2, mc=:red, ms=4, msw=0, leg=:none)
+# 	title!(M, @sprintf("%.0f, w = %.4f, J = %.3f", nsq[i], real(ωs[i])/2, Jev[i]))
+# 	U = zplot(Umd(i))
+# 	title!(U, "u")
+# 	V = zplot(Vmd(i))
+# 	title!(V, @sprintf("%.1e * v*", norm(Umd(i))/norm(Vmd(i))))
+# 	plot(M, U, V, layout=@layout [a; b c])
+# end
