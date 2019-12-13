@@ -108,6 +108,14 @@ function apply_op!(M,n)
     end
 end
 
+# Use eigen(M) for brute force spectrum
+
+# Iterative spectrum for n eigenvalues
+
+function spectrum(M,n)
+    eigs(M; nev=n, which=:SM) 
+end
+
 # # spectrum by brute force
 #     
 # println("Dense matrix and brute force")
