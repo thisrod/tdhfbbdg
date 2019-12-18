@@ -4,7 +4,7 @@
 
 \def\cite#1{{\tt #1}}
 
-\title Berry phase
+\title Berry phase and Bose gas vortices
 
 2019-10-21
 
@@ -98,5 +98,52 @@ $$γ(C)≈i∑_j〈n|∇n〉·ΔR≈-∑_j{\rm Im} 〈n_j|n_{j+1}〉
 	=∑_j{\rm Im} 〈n_{j+1}|n_j〉.$$
 On a closed path, with an analytic~$γ$, this type of approximation
 is often spectrally convergent.
+
+2019-12-18 Haldane's analysis
+
+Haldane \cite{prl-55-2887} calculates the Berry phase for a vortex
+in a BEC whose centre follows a path~$C$.  The crux of the calculation
+comes from \cite{prl-53-722}.
+
+The vortex-free state is treated as a product state of the bosons,
+$ψ⁰=∏_i ψ⁰(x_i,y_i)$.  (Sums and products run over the bosons.)
+The state with a vortex centred at~$R$ is~$ψ=A(R)f(R)ψ⁰$,
+where~$A(R)=∏_i(x_i-X+i(y_i-Y))$ is a phase singularity,
+and~$f(R)=∏_ig(|r_i-R|/ξ)$ is a radial density, with~$g(r)→\hbox{const}/r$
+as~$r→∞$.
+
+The Berry phase is
+$$γ=i∫_C〈ψ{∂\over ∂R}ψ〉\,dR.$$
+To calcuate it, Haldane throws to \cite{prl-53-722}.  That paper
+considers the case~$f(r)=1$, but perhaps~$f$ can be absorbed
+into~$ψ⁰$, because~$f≈1$ at the vortex core, where the action is.
+That paper claims that
+$${∂\over ∂R}A(R)ψ₀=∑_i{∂\over ∂R'}\ln(z_i-R')A(R)ψ₀.$$
+{\bf To do: verify that.}  The sum can be converted to an integral
+by use of the boson density operator~$ρ(z) = 〈ψ|∑_iδ(z-z_i)|ψ〉$,
+giving
+$$〈ψ{∂\over ∂R}ψ〉=〈ψ{∂\over ∂R}∑_i\ln(z_i-R)ψ〉
+	=∫\,d²zρ_R(z){∂\over ∂R}∑_i\ln(z-R),
+$$
+This is where Haldane resumes at Equation~10, with a switch of
+exterior derivative from~$dz$ to~${\bf\hat z}×d{\bf R}$.  He
+replaces~$\ln(z_i-R')$ with~$\ln(|z_i-R'|)$, presumably because~$γ$
+is known to be real, so the integral of~$i\Arg(z_i-R')$ must be
+zero.
+
+The density
+$ρ_R$ includes a vortex hole at~$R$, and the next step is to rewrite
+it as~$ρ_R(r)=ρ⁰(r)+δρ(r-R)$, then split out a part~$δρ₀$ from~$δρ$
+that has circular symmetry, and looks like a vortex hole in a uniform
+gas.
+
+Equivalent arguments are given in each paper, using Cauchy's theorem
+in \cite{prl-53-722} and Green's theorem in \cite{prl-55-2887}.
+Since~$ρ⁰$ is independent of~$R$, the line integral merely picks
+out the interior of~$C$, and the area integral gives the number of
+particles in a gas without the vortex hole.  {\bf How do you define
+that, when the only order parameter you have includes a vortex?}
+The correction term can be argued to be small, because it only
+depends on the part~$δρ-δρ₀$ that lacks circular symmetry.
 
 \bye
