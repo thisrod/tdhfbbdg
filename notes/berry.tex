@@ -105,65 +105,69 @@ is often spectrally convergent.
 
 Haldane \cite{prl-55-2887} calculates the Berry phase for a vortex
 in a BEC whose centre follows a path~$C$.  I have struggled to
-reproduce this from first principles, using the discretised Berry
-formula.  The crux of the calculation comes from \cite{prl-53-722},
-whose notation and conventions differ from Haldane.  This will be
-a detailed and consistent derivation.
+reproduce this numerically, using the discretised Berry formula.
+The crux of the calculation comes from \cite{prl-53-722}.  I intend
+this to be a fully detailed derivation, with consistent notation
+and conventions across the two papers.
 
-Haldane treated a gas with multiple vortices, but my analysis is
-restricted to one.
-
-The entire gas is condensed, and so its state is a product of
-single-boson states, $Ψ_R(x₁,y₁,…,x_N,y_N)=∏_jψ_R(x_j,y_j)$,
-where the vortex core is located at~$R=(X,Y)$.  Sums and products
-run over the $N$~bosons.  When~$R$ traces out a closed
-path~$C$, the Berry phase is
-$$\eqalign{γ&=i∮_C\left〈Ψ_R{∂\over ∂R}Ψ_R\right〉\,dR\cr
-	&=i∮_C∑_j\left〈ψ_R{∂\over ∂R}ψ_R\right〉\,dR\cr
-	&=Ni∮_C\left〈ψ_R{∂\over ∂R}ψ_R\right〉\,dR
+Suppose that a bose gas has a single vortex core at~$R=(X,Y)$.  The
+gas is wholly condensed, its state~$Ψ_R(x₁,y₁,…,x_N,y_N)=∏_jψ_R(x_j,y_j)$
+being a product of single-boson wave functions, where the index~$j$
+runs over the bosons.  The vortex traces a closed path~$C$, in the
+course of which the wave function accumulates a Berry phase
+$$\eqalign{γ&=i∮_C\left〈Ψ_R|∇_R|Ψ_R\right〉\,dR
+	=i∮_C∑_j\left〈ψ_R|∇_R|ψ_R\right〉\,dR
+	=Ni∮_C\left〈ψ_R|∇_R|ψ_R\right〉\,dR\cr
+	&=Ni∮_CdR\,∫d²r\,ψ*_R(r)∇_Rψ_R(r).
 }$$
-To avoid all those sums and products, the Berry phase can be
+To avoid the sums and products, the Berry phase can be
 calculated for a single boson with wave function~$ψ_R$, then multiplied
 by~$N$.  Alternatively, the wave function can be normalised with~$∫|ψ_R|²=N$
 instead of~1, then substituted into the usual Berry formula.
 
-Let the vortex-free wave function be~$φ(x,y)$.
-The wave function with a vortex centred at~$R$ is
-$$ψ_R=A_Rf_Rφ,$$
-where~$A_{(X,Y)}(x,y)=(x-X+i(y-Y))=z-Z$ is a phase singularity,
-and~$f_R(r)=g(|r-R|/ξ)$ is a radial density, with~$g(r)→\hbox{const}/|r|$
-as~$r→∞$.
+Let the vortex-free wave function be~$φ(r)$.  In the Thomas-Fermi
+regime, the wave function with a vortex centred at~$R$ has the form
+$$ψ_R=A_Rf_Rφ.$$
+Here~$A_Z(z)=z-Z$ is a phase singularity, and~$f_R(r)=g(|r-R|/ξ)$
+is a radial density correction.  I will use the notation~$r=(x,y)$,
+$z=x+iy$, $R=(X,Y)$ and~$Z=X+iY$, with the convention that $∇_R$~is
+the gradient of a complex-valued function of two real variables,
+while $d\over dz$ is a complex derivative.
 
-To calcuate it, Haldane throws to \cite{prl-53-722}.  That paper
-considers the case~$f(r)=1$, but perhaps~$f$ can be absorbed
-into~$ψ⁰$, because~$f≈1$ at the vortex core, where the action is.
-That paper claims that
-$${∂\over ∂R}A(R)ψ₀=∑_i{∂\over ∂R'}\ln(z_i-R')A(R)ψ₀.$$
-{\bf To do: verify that.}  The sum can be converted to an integral
-by use of the boson density operator~$ρ(z) = 〈ψ|∑_iδ(z-z_i)|ψ〉$,
-giving
-$$〈ψ{∂\over ∂R}ψ〉=〈ψ{∂\over ∂R}∑_i\ln(z_i-R)ψ〉
-	=∫\,d²zρ_R(z){∂\over ∂R}\ln(z-R),
+To keep track of which quantities are being differentiated, and to
+avoid writing out the components of vectors, let~$R=R(t)$.  Then
+$${dψ_{R}\over dt}={d\over dt}A_{R(t)}f_{R(t)}φ
+	=-\left({1\over z-Z}{dZ\over dt}+B(t)·{dR\over dt}\right)ψ_{R(t)}
 $$
-This is where Haldane resumes at Equation~10, with a switch of
-exterior derivative from~$dz$ to~${\bf\hat z}×d{\bf R}$.  He
-replaces~$\ln(z_i-R')$ with~$\ln(|z_i-R'|)$, presumably because~$γ$
-is known to be real, so the integral of~$i{\rm Arg}(z_i-R')$ must be
-zero.
+Where
+$$B(t)={g'\over gξ}\left({∥r-R∥\over ξ}\right){r-R\over ∥r-R∥}.$$
+Therefore
+$$γ=-i∮_Cdt\,∫d²r\,\left({|ψ_R|²\over z-Z}{dZ\over dt}+|ψ_R|²B(t)\right).$$
+The term in~$B(t)$ can be ignored, because~$B$
+and~$γ$ are both real quantities.
 
-The density
-$ρ_R$ includes a vortex hole at~$R$, and the next step is to rewrite
-it as~$ρ_R(r)=ρ⁰(r)+δρ(r-R)$, then split out a part~$δρ₀$ from~$δρ$
-that has circular symmetry, and looks like a vortex hole in a uniform
-gas.
+Now split the boson density as~$|ψ_R|²=ρ₀+δρ_R$, where~$ρ₀$ is the
+density of a vortex-free condensate, and~$δρ_R$ is the density
+deficit due to the vortex core.  This splits~$γ$ into two corresponding
+terms.  The first term involves~$ρ₀$, which is independent of~$t$
+and can be factored out to make the line integral a contour integral
+$$γ₀=i∫d²r\,ρ₀(r)∮_CdZ\,{1\over Z-z}.$$
+In the case that the vortex makes an clockwise circuit, the contour
+integral is~$-2πi$ for~$z$ inside the contour, and~$0$ otherwise.
+(An anti-clockwise circuit has opposite sign.)  So in the clockwise
+case,
+$$γ₀=2π∫_Cd²r\,ρ₀(r).$$
 
-Equivalent arguments are given in each paper, using Cauchy's theorem
-in \cite{prl-53-722} and Green's theorem in \cite{prl-55-2887}.
-Since~$ρ⁰$ is independent of~$R$, the line integral merely picks
-out the interior of~$C$, and the area integral gives the number of
-particles in a gas without the vortex hole.  {\bf How do you define
-that, when the only order parameter you have includes a vortex?}
-The correction term can be argued to be small, because it only
-depends on the part~$δρ-δρ₀$ that lacks circular symmetry.
+For a given vortex position, the density deficit is dominated by a
+symmetric term~$δρ_R(r)≈δρ₀(∥r-R∥)$.  But
+$$∫d²r\,{δρ₀(∥r-R∥)\over z-Z}=0,$$
+so the second term is the small quantity
+$$γ₁=-i∮_CdZ\,∫d²r\,{δρ_R(r)-δρ₀(∥r-R∥)\over z-Z}.$$
+
+Comments
+
+\item{1.} The density deficit~$δρ_R$ is not quite circularly symmetric
+under the ansatz~$ψ_R=A_rf_Rφ$, because~$φ$ might have a density
+gradient.
 
 \bye
