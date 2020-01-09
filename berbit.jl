@@ -79,8 +79,22 @@ else
 end
    
 # Rotate the order parameter
-P = ODEProblem((ψ,_,_)->-(y.*(ψ*∂')-x.*(∂*ψ)), ψ, (0.0,1.0))
+P = ODEProblem((ψ,_,_)->-(y.*(ψ*∂')-x.*(∂*ψ)), ψ, (0.0,2π))
 S = solve(P)
 
 Nop = h^2*norm(ψ.*(r² .< r₀^2))^2
 Nb(ε) = h^2/ε*imag(S(ε) ⋅S(0))
+
+# numerical Berry phase
+
+∫(u) = h^2*sum(u)
+ndiff(u,θ₀,θ₁) = imag.(conj.(u(θ₁)).*u(θ₀))
+
+function ∮(u, difun, m)
+    h = 2π/m
+    s = zero(z)
+    for j = 1:m
+       s .+= difun(u, (j-1)*h, j*h)
+    end
+    s
+end
