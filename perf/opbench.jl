@@ -75,12 +75,19 @@ function time_sor(φ, steps)
 
 end # time_sor
 
+# ψ₁, rsdl = time_sor(ψ₁, 4000)
+
 # find minimum energy with Optim
 
 function E(ψ)
     Lψ = -∂²*ψ-ψ*∂²+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
-    # ψ is normalised by constraint
-    sum(conj.(ψ).*Lψ) |> real
+    sum(conj.(ψ).*Lψ)/norm(ψ)^2 |> real
+end
+
+function rdl(ψ)
+    Lψ = -∂²*ψ-ψ*∂²+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
+    E = sum(conj.(ψ).*Lψ)/norm(ψ)^2 |> real
+    norm(Lψ-E*ψ)/norm(ψ)
 end
 
 # break out real and imaginary parts, constraint is unit sphere
@@ -98,6 +105,7 @@ cost(xy) = E(20.31*reconstruct(xy))
 init = ψ/norm(ψ)
 
 # result = optimize(cost, [real.(init[:]); imag.(init[:])], NelderMead(manifold=Sphere()))
+# ψ₂ = 20.31*reconstruct(result.minimizer)
 
 # wall_time = work * eachindex(rsdls) ./ length(rsdls)
 # geometric convergence after 10*100 steps
