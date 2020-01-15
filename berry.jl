@@ -7,7 +7,8 @@ zplot(ψ) = plot(x[:], y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(
 zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
 
 r₀ = 2.0
-h = 0.03;  N = 1000
+r₁ = 4.0	# image vortex
+h = 0.03;  N = 300
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
 
 A = π*r₀^2
@@ -25,6 +26,24 @@ function φ(θ)
     q ./= sqrt.(1 .+ abs2.(z .- r))
 end
 
+# two vortices
+function vim(θ)
+    q = z .- r₀*exp(1im*θ)
+    q .*= z .- r₁*exp(1im*θ)
+    q ./= abs.(q)
+end
+
+vimr(θ) = exp(-2im*θ)*vim(θ)
+
+# vortex and image
+function vam(θ)
+    q = z .- r₀*exp(1im*θ)
+    q .*= conj.(z .- r₁*exp(1im*θ))
+    q ./= abs.(q)
+end
+
+vamr(θ) = exp(-im*θ)*vam(θ)
+
 mask!(u) = (u .*= (abs.(z).≤N*h/2))
 
 ∫(u) = h^2*sum(u)
@@ -34,7 +53,7 @@ cdiff(u,θ₀,θ₁) = 1im*conj.(u(0.5(θ₀+θ₁))).*(u(θ₁)-u(θ₀))
 mdiff(u,θ₀,θ₁) = 0.5im*conj.(u(θ₀)+u(θ₁)).*(u(θ₁)-u(θ₀))
 ndiff(u,θ₀,θ₁) = imag.(conj.(u(θ₁)).*u(θ₀))
 
-function add(u, difun, m)
+function ∮(u, difun, m)
     h = 2π/m
     s = zero(z)
     for j = 1:m
