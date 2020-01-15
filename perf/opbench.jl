@@ -77,37 +77,25 @@ function time_sor(φ, steps)
 
 end # time_sor
 
-# ψ₁, rsdl = time_sor(ψ₁, 4000)
+# ψ₁, rsdl = time_sor(ψ, 4000);
+# ψ₁ ./= norm(ψ₁);
 
-# find minimum energy with Optim
+# Find minimum energy with Optim.  The necessary gradient is the RHS of the GPE.
 
-function E(ψ)
-    Lψ = -∂²*ψ-ψ*∂²+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
-    sum(conj.(ψ).*Lψ)/norm(ψ)^2 |> real
-end
+L(ψ) = -∂²*ψ-ψ*∂²+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
+H(ψ) = -∂²*ψ-ψ*∂²+V.*ψ+C/2*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
+E(ψ) = sum(conj.(ψ).*H(ψ)) |> real
 
 function rdl(ψ)
-    Lψ = -∂²*ψ-ψ*∂²+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
-    E = sum(conj.(ψ).*Lψ)/norm(ψ)^2 |> real
-    norm(Lψ-E*ψ)/norm(ψ)
+    μ = sum(conj.(ψ).*L(ψ)) |> real
+    norm(L(ψ)-μ*ψ)
 end
 
-# break out real and imaginary parts, constraint is unit sphere
+cost(xy) = E(reshape(xy,N,N))
+grdt!(buf,xy) = copyto!(buf, L(reshape(xy,N,N))[:])
 
-function reconstruct(xy)
-    n = length(xy) ÷ 2
-    ψ = xy[1:n] + 1im*xy[n+1:end]
-    m = sqrt(n) |> Int
-    ψ = reshape(ψ,m,m)
-end
-
-# norm taken from SOR solution
-cost(xy) = E(reconstruct(xy))
-
-init = ψ/norm(ψ)
-
-# result = optimize(cost, [real.(init[:]); imag.(init[:])], NelderMead(manifold=Sphere()))
-# ψ₂ = 20.31*reconstruct(result.minimizer)
+# result = optimize(cost, grdt!, ψ[:], ConjugateGradient(manifold=Sphere()))
+# ψ₂ = reshape(result.minimizer,N,N);
 
 # wall_time = work * eachindex(rsdls) ./ length(rsdls)
 # geometric convergence after 10*100 steps
