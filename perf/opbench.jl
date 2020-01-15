@@ -1,4 +1,8 @@
 # Single vortex relaxation benchmark
+#
+# For compatibility with numerical libraries, this file uses the
+# normalisation ∫|ψ|² = 1 and a nonlinear term gN|ψ|².  In contrast,
+# the rest of this package uses ∫|ψ|² = N and g|ψ|².
 
 # Questions for each method:
 #
@@ -12,12 +16,11 @@
 
 using LinearAlgebra, BandedMatrices, Optim
 
-const C = 10
-const μ = 10
+const C = 10*20.31^2	# chosen to get norm(ψ) ≈ 1 with μ = 10
+const μ = 10 
 const Ω = 2*0.575
 const h = 0.2
 const N = 40
-const rdtol = 1e-5	# residual tolerance
 
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
@@ -67,7 +70,6 @@ function time_sor(φ, steps)
              E = sum(conj.(ψ).*Lψ)/norm(ψ)^2 |> real
              residual = norm(Lψ-E*ψ)/norm(ψ)
              push!(rsdls, residual)
-             # if residual > rdtol || break
          end
     end
     
@@ -100,7 +102,7 @@ function reconstruct(xy)
 end
 
 # norm taken from SOR solution
-cost(xy) = E(20.31*reconstruct(xy))
+cost(xy) = E(reconstruct(xy))
 
 init = ψ/norm(ψ)
 
