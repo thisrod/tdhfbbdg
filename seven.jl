@@ -3,10 +3,10 @@
 
 using LinearAlgebra, BandedMatrices, Optim
 
-g = 10;  Ω=2*0.55
+g = 10/sqrt(2);  Ω=0.55*sqrt(2)
 Nc = 116.24
 
-h = 0.2;  N = 100
+h = 0.2/2^(1/4);  N = 100
 C = g*Nc/h^2		# Optim sets norm(ψ) = 1
 
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
@@ -29,12 +29,12 @@ end
 
 # Minimise the energy 
 #
-# E(ψ) = -∫ψ*∇²ψ + V|ψ|²+g/2·|ψ|⁴-Ω·ψ*Jψ
+# E(ψ) = -∫ψ*∇²ψ/2 + V|ψ|²+g/2·|ψ|⁴-Ω·ψ*Jψ
 #
 # The GPE functional L(ψ) is the gradient required by Optim.
 
-L(ψ) = -(∂²*ψ+ψ*∂²)+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
-H(ψ) = -(∂²*ψ+ψ*∂²)+V.*ψ+C/2*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
+L(ψ) = -(∂²*ψ+ψ*∂²)/2+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
+H(ψ) = -(∂²*ψ+ψ*∂²)/2+V.*ψ+C/2*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
 E(ψ) = sum(conj.(ψ).*H(ψ)) |> real
 
 grdt!(buf,ψ) = copyto!(buf, L(ψ))
