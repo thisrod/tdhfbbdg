@@ -1,7 +1,7 @@
 # Order parameter for a Bose-Einstein condensate with a lattice of
 # seven vortices
 
-using LinearAlgebra, BandedMatrices, Optim
+using LinearAlgebra, BandedMatrices, Optim, Arpack
 
 g = 10/sqrt(2);  Ω=0.55*sqrt(2)
 Nc = 116.24
@@ -34,15 +34,31 @@ end
 # The GPE functional L(ψ) is the gradient required by Optim.
 
 L(ψ) = -(∂²*ψ+ψ*∂²)/2+V.*ψ+C*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
-H(ψ) = -(∂²*ψ+ψ*∂²)/2+V.*ψ+C/2*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
-E(ψ) = sum(conj.(ψ).*H(ψ)) |> real
+Ham(ψ) = -(∂²*ψ+ψ*∂²)/2+V.*ψ+C/2*abs2.(ψ).*ψ-1im*Ω*(y.*(ψ*∂')-x.*(∂*ψ))
+E(ψ) = sum(conj.(ψ).*Ham(ψ)) |> real
 
 grdt!(buf,ψ) = copyto!(buf, L(ψ))
 
-# result = optimize(E, grdt!, ψ, ConjugateGradient(manifold=Sphere()));
-# ψ₀ = result.minimizer;
+result = optimize(E, grdt!, ψ, ConjugateGradient(manifold=Sphere()))
+ψ₀ = result.minimizer
+μ = sum(conj.(ψ₀).*L(ψ₀)) |> real
 
 function rdl(ψ)
     μ = sum(conj.(ψ).*L(ψ)) |> real
     norm(L(ψ)/μ-ψ)
+end
+
+# Dense BdG matrix
+
+eye = Matrix(I,N,N)
+J = 1im*(repeat(y,1,N)[:].*kron(∂,eye)-repeat(x,N,1)[:].*kron(eye,∂))
+H = -kron(eye, ∂²) - kron(∂², eye) + diagm(0=>V[:]) - μ*Matrix(I,N^2,N^2)
+Q = diagm(0=>ψ[:]);  R = 2C*abs2.(Q)
+const BdGmat = [
+    H+R-Ω*J    C*Q.^2;
+    -C*conj.(Q).^2    -H-R-Ω*J
+]
+
+function spectrum(M,n)
+    eigs(M; nev=n, which=:SM) 
 end
