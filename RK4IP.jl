@@ -37,12 +37,11 @@ function relax(step, x₀, R)
 	x = x₀; r = Inf
 	incg = 0
 	relaxed_r = Float64[]
-	for j = 1:5000
+	while r > R
 		x, r = step(x)
 		push!(relaxed_r, r)
-		r > R || (return x)
+		length(relaxed_r) > 5000 && break
 	end
-	println("WARNING: relax failed to converge")
 	x
 end
 

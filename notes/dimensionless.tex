@@ -33,4 +33,23 @@ $ψ₀(x,y)=ψ₀(x)·ψ₀(y)={1\over √π}e^{-(x²+y²)/2}$.  The normal
 hamiltonian, with~$ω=1$, has eigenvalue~$½$ in 1D and~$1$ in 2D.
 My choice gives double those.
 
+2020-03-09 Vector normalisation
+
+While quantum physics is set up in terms of the~$L²$ norm, numerical
+algorithms and subroutines use the~$l²$ norm.  It is convenient to
+use the physics conventions when writing a program that implements
+SOR from scratch, but when the program uses standard eigenvector
+and optimisation routines extensively, it is clearer to use the
+numerical convention consistently than to keep converting back and
+forth.  So how does Schrödinger's equation look with a~$l²$ normalised
+vector of collocation values?
+
+Let the continuous wave function be~$ψ$ with~$∫|ψ|²=1$, and the
+discrete values be~$φ_j$ with~$∑_j|φ_j|²=1$.  Dimensional analysis
+suggests the conversion is~$φ_j=√hψ(x_j)$, which follows formally
+from~$∑_jh|φ_j|²=h∫|ψ|²≈∫|ψ|²$.  Schrödinger's equation is
+$$\eqalign{i{∂²φ\over ∂t²}&=\left(-{∇²\over 2}+V+C|ψ|²\right)φ\cr
+    &=\left(-{∇²\over 2}+V+{C\over h}|ψ|²\right)φ.
+}$$
+
 \bye

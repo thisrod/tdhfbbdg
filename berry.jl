@@ -36,9 +36,10 @@ end
 vimr(θ) = exp(-2im*θ)*vim(θ)
 
 # vortex and image
-function vam(θ)
+vam(θ) = vam(θ,θ)
+function vam(θ,φ)
     q = z .- r₀*exp(1im*θ)
-    q .*= conj.(z .- r₁*exp(1im*θ))
+    q .*= conj.(z .- r₁*exp(1im*φ))
     q ./= abs.(q)
 end
 
@@ -67,7 +68,16 @@ plotdiff(a...) = plotlcr(cdiff(a...), mdiff(a...), ndiff(a...))
 
 halsum() = -2π*(abs.(z) .< r₀)
 
-plotcis(u, m) = zplot(add(u, ndiff, m))
+plotcis(u, m) = zplot(∮(u, ndiff, m))
 ploterr(u, m) = zplot(add(u, ndiff, m).-halsum())
 
 # truncs = [∫(A.*(abs.(z).<j)) |> real for j = 1:15]
+
+k₀ = 2π/(N*h)
+dyn = zero(z)
+for i = -5:5
+    for j = -5:5
+        dyn .+= randn(2)⋅[1, 1im]*exp.(1im*k₀*(i*x.+j*y))
+    end
+end
+dyn = exp.(1im*real.(dyn)/10)

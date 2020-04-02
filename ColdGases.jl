@@ -18,6 +18,9 @@ function BoseGas(; V, C, μ, Ω=0.0)
 	BoseGas(V, C, μ, Ω)
 end
 
+Base.show(io::IO, g::BoseGas) =
+	print(io, "BoseGas(V=", g.V, ", C=", g.C, ", μ=", g.μ, ", Ω=", g.Ω, ")")
+
 grid(x::BoseGas) = grid(x.V)
 
 ∇²(u) = diff(u,1,1) + diff(u,2,2)
@@ -47,12 +50,15 @@ end
 
 hartree_fock(s::BoseGas, nc::XField, sense::Int=1) = hartree_fock(s, nc, zero(nc), sense)
 
-function bdg_matrix(s::BoseGas, ψ₀::XField, μ::Real)
-	L = hartree_fock(s, 2*abs2.(ψ₀))
-	Lstar = hartree_fock(s, 2*abs2.(ψ₀), -1)
+function bdg_matrix(s::BoseGas, ψ₀::XField, nnc::XField, μ::Real)
+	# replace nc + 2nnc with 2nc + 2nnc
+	L = hartree_fock(s, 2*abs2.(ψ₀), nnc)
+	Lstar = hartree_fock(s, 2*abs2.(ψ₀), nnc, -1)
 	Lmat = linop_matrix(ψ -> L(ψ)-μ*ψ, s.V)
 	Lcmat = linop_matrix(ψ -> Lstar(ψ)-μ*ψ, s.V)
 	Matrix([Lmat Diagonal(s.C*ψ₀[:].^2); -Diagonal(s.C*conj.(ψ₀[:]).^2) -Lcmat])
 end
+
+bdg_matrix(s::BoseGas, ψ₀::XField, μ::Real) = bdg_matrix(s,ψ₀,zero(ψ₀),μ)
 
 end
