@@ -54,8 +54,8 @@ H = -kron(eye, ∂²)/2 - kron(∂², eye)/2 + diagm(0=>V[:]) - μ*Matrix(I,N^2,
 J = 1im*(repeat(y,1,N)[:].*kron(∂,eye)-repeat(x,N,1)[:].*kron(eye,∂))
 Q = diagm(0=>ψ[:])
     BdGmat = [
-        H+2C/h*abs2.(Q)-Ω*J    C/h*Q.^2;
-        -C/h*conj.(Q).^2    -H-2C/h*abs2.(Q)-Ω*J
+        H+2C/h*abs2.(Q)-Ω*J    -C/h*Q.^2;
+        C/h*conj.(Q).^2    -H-2C/h*abs2.(Q)-Ω*J
     ]
 
 #    nnc += b*(reshape(sum(abs2.(ev[N^2+1:end,2:end]), dims=2), size(ψ)) - nnc)
@@ -68,21 +68,20 @@ Q = diagm(0=>ψ[:])
 
 umode(j) = reshape(uvs[1:N^2, j], N, N)
 vmode(j) = reshape(uvs[N^2+1:end, j], N, N)
+umode(j,n) = reshape(S[n][1:N^2, j], N, N)
+vmode(j,n) = reshape(S[n][N^2+1:end, j], N, N)
 
-zk = 1		# zero mode found by eyeball
-kk = 4		# Kelvin mode found by eyeball
+zk = 2		# zero mode found by eyeball
+kk = 3		# Kelvin mode found by eyeball
 bnum = Nc*sum(abs2.(umode(kk)) - abs2.(vmode(kk)))
 
 # rotate order parameter phase to match numerical k mode
-gpsu = sum(umode(zk).*conj.(ψ))
-gpsu /= abs(gpsu)
-gpsv = sum(vmode(zk).*ψ)
-gpsv /= abs(gpsv)
+gps = sum(umode(zk).*conj.(ψ)) + sum(vmode(zk).*ψ)
+gps /= abs(gps)
 
-init = [[gpsu*ψ[:]; gpsv*conj.(ψ[:])] √2*uvs[:,zk] uvs[:,kk]/√bnum]
+init = [gps*[ψ[:]; conj.(ψ[:])] √2*uvs[:,zk] uvs[:,kk]/√bnum]
 
 # TODO kludge BC
-# TODO think about phase of zero mode wrt other modes
 
 # mode dynamics in lab frame
 
@@ -90,8 +89,8 @@ function BGM(ψ)
     @assert size(ψ) == (N,N)
     Q = diagm(0=>ψ[:])
     [
-        H+2C/h*abs2.(Q)    C/h*Q.^2;
-        -C/h*conj.(Q).^2    -H-2C/h*abs2.(Q)
+        H+2C/h*abs2.(Q)    -C/h*Q.^2;
+        C/h*conj.(Q).^2    -H-2C/h*abs2.(Q)
     ]
 end
 
@@ -106,18 +105,20 @@ end
 
 P = ODEProblem(deriv, init, (0.0,0.025), saveat=0.005)
 S = solve(P)
-
-function showmode(i)
-	M = scatter(Jev[nsq[:].≥0], real.(ωs[nsq[:].≥0]) ./ 2, mc=:black, ms=3, msw=0, leg=:none)
-	scatter!(M, Jev[nsq[:].<0], real.(ωs[nsq[:].<0]) ./ 2, mc=:green, ms=3, msw=0, leg=:none)
-	scatter!(M, Jev[i:i], real.(ωs[i:i]) / 2, mc=:red, ms=4, msw=0, leg=:none)
-	title!(M, @sprintf("%.0f, w = %.4f, J = %.3f", nsq[i], real(ωs[i])/2, Jev[i]))
-	U = zplot(Umd(i))
-	title!(U, "u")
-	V = zplot(Vmd(i))
-	title!(V, @sprintf("%.1e * v*", norm(Umd(i))/norm(Vmd(i))))
-	plot(M, U, V, layout=@layout [a; b c])
-end
+# 
+# function showmode(i)
+# 	M = scatter(Jev[nsq[:].≥0], real.(ωs[nsq[:].≥0]) ./ 2, mc=:black, ms=3, msw=0, leg=:none)
+# 	scatter!(M, Jev[nsq[:].<0], real.(ωs[nsq[:].<0]) ./ 2, mc=:green, ms=3, msw=0, leg=:none)
+# 	scatter!(M, Jev[i:i], real.(ωs[i:i]) / 2, mc=:red, ms=4, msw=0, leg=:none)
+# 	title!(M, @sprintf("%.0f, w = %.4f, J = %.3f", nsq[i], real(ωs[i])/2, Jev[i]))
+# 	U = zplot(Umd(i))
+# 	title!(U, "u")
+# 	V = zplot(Vmd(i))
+# 	title!(V, @sprintf("%.1e * v*", norm(Umd(i))/norm(Vmd(i))))
+# 	plot(M, U, V, layout=@layout [a; b c])
+# end
 
 uvplot(j) = plot(zplot(umode(j)), zplot(vmode(j)), layout=@layout [a b])
+uvplot(j,n) = plot(zplot(umode(j,n)), zplot(vmode(j,n)), layout=@layout [a b])
 uvplot() = plot(uvplot(1), uvplot(2), uvplot(3), layout=@layout [a;b;c])
+splot(n) = plot(uvplot(1,n), uvplot(2,n), uvplot(3,n), layout=@layout [a;b;c])
