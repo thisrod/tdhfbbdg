@@ -1,4 +1,4 @@
-# ground state for a harmonic trap with a moat
+# ground state and GPE dynamics for a harmonic trap with a moat
 
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Arpack
 using Plots, ComplexPhasePortrait
@@ -11,10 +11,10 @@ w = 0.15	# moat width
 # ω = -10.0	# potential offset outside moat for fast vortex
 ω = 0.0
 
-# h = 0.1
-# N = 60
-h = 0.3
-N = 20
+h = 0.05
+N = 120
+# h = 0.3
+# N = 20
 
 
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
@@ -100,7 +100,7 @@ Lφ = -(∂²*φ+φ*∂²')/2+V.*φ+C/2h*abs2.(φ).*φ
 m = sum(conj.(φ).*Lφ) |> real
 
 P = ODEProblem(f, φ, (0.0,1.0), saveat=0.05)
-# S = solve(P)
+S = solve(P)
 
 function poles(u)
     st = [-h 0 h]
@@ -111,7 +111,27 @@ function poles(u)
     A, B
 end
 
+function locmax(u, ix::CartesianIndex)
+    j, k = Tuple(ix)
+    1 < j < size(u,1) && 1 < k < size(u,2) &&
+        abs(u[j,k]) > 100 * minimum(abs, u) &&
+        abs(u[j,k]) ≈ maximum(abs, u[j-1:j+1, k-1:k+1])
+end
+
+locmax(u) = [k for k in keys(u) if locmax(u, k)]
+
 function show_vortices(u)
+    P, Q = poles(u)
+    function markup!(X, col)
+        zin = z[2:end-1, 2:end-1]
+        f!(R, sym) = scatter!(X, real.(zin[locmax(R)]), imag.(zin[locmax(R)]), m=sym, ms=1, mc=col, msw=0, leg=:none)
+        f!(Q, :cross)
+        f!(P, :xcross)
+    end
     A, B = (heatmap(x[2:end-1], y[2:end-1], abs.(reverse(v,dims=1)), aspect_ratio=1) for v in poles(u))
-    plot(zplot(u), argplot(u), B, A, layout = @layout [a b; c d])
+    C = zplot(u)
+    markup!(C, :white)
+    D = argplot(u)
+    markup!(D, :black)
+    plot(C, D, B, A, layout = @layout [a b; c d])
 end
