@@ -8,9 +8,9 @@ Nc = 5000
 h = 0.178;  N = 72
 C = 2748.85
 # Ω= 0.21213
-Ω= (0.2875+0.3)/2
+Ω= (0.2875+0.29375)/2
 
-r₀ = 1.5		# offset of imprinted phase
+r₀ = 1.9		# offset of imprinted phase
 
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
 V = r² = abs2.(z)
@@ -43,7 +43,7 @@ P = Diagonal(sqrt.(rc^4 .+ V[:].^2))
 
 result = optimize(E, grdt!, ψ[:],
     GradientDescent(manifold=Sphere()),
-    Optim.Options(iterations = 100_000, allow_f_increases=true)
+    Optim.Options(iterations = 200_000, allow_f_increases=true)
 )
 ψ = togrid(result.minimizer)
    
