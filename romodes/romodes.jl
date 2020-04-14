@@ -6,6 +6,7 @@ using Plots, ComplexPhasePortrait, Printf
 Nc = 5000
 # h = 0.2523;  N = 36
 h = 0.178;  N = 72
+# h = 0.119;  N = 108
 C = 2748.85
 Ω= 0.288153076171875
 # Ω= (0.28814697265625+0.2881591796875)/2
@@ -43,7 +44,7 @@ P = Diagonal(sqrt.(rc^4 .+ V[:].^2))
 
 result = optimize(E, grdt!, ψ[:],
     GradientDescent(manifold=Sphere()),
-    Optim.Options(g_tol = 1e-14, iterations = 200_000, allow_f_increases=true)
+    Optim.Options(iterations = 200_000, allow_f_increases=true)
 )
 ψ = togrid(result.minimizer)
    

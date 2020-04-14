@@ -3,7 +3,8 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Arpack
 using Plots, ComplexPhasePortrait
 
-C = 250.0
+# C = 250.0
+C = 300.0
 Ω = 0.0
 R = 1.3
 w = 0.15	# moat width
