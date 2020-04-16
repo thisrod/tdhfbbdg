@@ -1,21 +1,16 @@
 # Dynamical Kelvin mode for an offset vortex
 
-using LinearAlgebra, BandedMatrices, Arpack, Optim, DifferentialEquations
+using LinearAlgebra, BandedMatrices, Arpack, Optim, DifferentialEquations, JLD2
 using Plots, ComplexPhasePortrait, Printf
 
 Nc = 5000
-# h = 0.2523;  N = 36
-h = 0.178;  N = 72
-# h = 0.119;  N = 108
+h = 0.119;  N = 108
 C = 2748.85
-Ω= 0.288153076171875
-# Ω= (0.28814697265625+0.2881591796875)/2
 
 r₀ = 1.9		# offset of imprinted phase
 
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
 V = r² = abs2.(z)
-ψ = Complex.(exp.(-r²/2)/√π);  ψ = (z.-r₀).*ψ
 
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
@@ -39,14 +34,8 @@ E(xy) = sum(conj.(togrid(xy)).*Ham(togrid(xy))) |> real
 grdt!(buf,xy) = copyto!(buf, 2*L(togrid(xy))[:])
 togrid(xy) = reshape(xy, size(z))
 
-rc = 2	# condensate radius, 
-P = Diagonal(sqrt.(rc^4 .+ V[:].^2))
-
-result = optimize(E, grdt!, ψ[:],
-    GradientDescent(manifold=Sphere()),
-    Optim.Options(iterations = 200_000, allow_f_increases=true)
-)
-ψ = togrid(result.minimizer)
+@load "romodes.jld2" Ω result psi
+ψ = psi
    
 # sound wave spectrum
 
@@ -66,7 +55,7 @@ Q = diagm(0=>ψ[:])
 
 # Find Kelvin mode
 
-ωs,uvs,nconv,niter,nmult,resid = eigs(BdGmat; nev=16, which=:SM) 
+# ωs,uvs,nconv,niter,nmult,resid = eigs(BdGmat; nev=16, which=:SM) 
 
 umode(j) = reshape(uvs[1:N^2, j], N, N)
 vmode(j) = reshape(uvs[N^2+1:end, j], N, N)
