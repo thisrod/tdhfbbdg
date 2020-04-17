@@ -4,7 +4,7 @@ using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Arpack
 using Plots, ComplexPhasePortrait
 
 # C = 250.0
-C = 300.0
+C = 350.0
 Ω = 0.0
 R = 1.3
 w = 0.15	# moat width
@@ -69,23 +69,6 @@ result = optimize(E, grdt!, z[:],
 φ = copy(ψ)
 φ[r.>R] = abs.(φ[r.>R])
 
-# Compute Kelvin mode.
-
-@assert Ω == 0
-
-Lφ = -(∂²*φ+φ*∂²')/2+V.*φ+C/h*abs2.(φ).*φ
-m = sum(conj.(φ).*Lφ) |> real
-
-eye = Matrix(I,N,N)
-H = -kron(eye, ∂²)/2 - kron(∂², eye)/2 + diagm(0=>V[:]) - m*Matrix(I,N^2,N^2)
-Q = diagm(0=>φ[:])
-BdG = [
-    H+2C/h*abs2.(Q)    C/h*Q.^2;
-    -C/h*conj.(Q).^2    -H-2C/h*abs2.(Q)
-]
-
-# eigs(BdG; nev=5, which=:SM)
-
 # Offset.  TODO fix parameters
 
 kelvin = exp.(-abs2.(z)/1/R^2)
@@ -101,7 +84,7 @@ Lφ = -(∂²*φ+φ*∂²')/2+V.*φ+C/2h*abs2.(φ).*φ
 m = sum(conj.(φ).*Lφ) |> real
 
 P = ODEProblem(f, φ, (0.0,1.0), saveat=0.05)
-S = solve(P)
+# S = solve(P)
 
 function poles(u)
     st = [-h 0 h]
