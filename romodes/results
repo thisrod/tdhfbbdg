@@ -1,4 +1,4 @@
-cp /Users/rpolkinghorne/Desktop/ozfred/ROB/romodes.jld2 .
+cp /Users/rpolkinghorne/Desktop/ozfred/ROA/romodes.jld2 .
 /Users/rpolkinghorne/Desktop/ozfred/ROA/romodes.jl
 ssh -l rpolking ozstar.swin.edu.au 'cd /fred/oz127/rpolking/ROA; sbatch runjob'
 
@@ -10,7 +10,7 @@ o	0.344096
 o	0.344064
 o	0.344032
 X	0.34403072
-10579657 ROA BdG modes
+X	0.34403008
 X	0.34402944
 •	0.34402816
 •	0.3440256          

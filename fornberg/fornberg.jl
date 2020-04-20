@@ -1,6 +1,12 @@
 # Julia port of Program 28 from SMM
 
-using LinearAlgebra, ToeplitzMatrices
+# TODO
+# scale r axis to usual units
+# find ground state by Optim
+# add repulsion
+# find offset vortex
+
+using LinearAlgebra, ToeplitzMatrices, Polynomials
 
 function cheb(N::Integer)
     N == 0 && return (0, 1)
@@ -23,6 +29,8 @@ E1 =  D[2:N2+1,2:N2+1]; E2 =  D[2:N2+1,N:-1:N2+2]
 # circular derivatives
 M = 20;   @assert M % 2 == 0
 dθ = 2π/M;  θ = dθ*(1:M); M2 = M÷2
+rc = [0; 0.5*(-1).^(1:M-1).*cot.(dθ*(1:M-1)/2)]
+Dθ = Toeplitz(rc, -rc)
 rc = [-π^2/(3*dθ^2)-1/6;  0.5*(-1).^(2:M)./sin.(dθ*(1:M-1)/2).^2]
 D2θ = Toeplitz(rc, rc)
 
@@ -36,16 +44,40 @@ L = kron(D1+R*E1,Matrix(I,M,M)) +
 
 # U = rint'.*exp.(-5rint'.^2 .+ 1im*θ);
 
-V = 5*kron(Diagonal(rint.^2),Matrix(I,M,M))
+# push up V for now, scale the SMM coordinates later
+V = 300*kron(Diagonal(rint.^2),Matrix(I,M,M))
+J = 1im*kron(Matrix(I,N2,N2), Dθ)
 
 # eigenmodes
-index = [1, 3, 6, 10]
-Lam, ev = eigen(-L.+V)
+index = 1:10
+Lam, ev = eigen(-L.+V-0.1J)
 ii = sortperm(Lam; by=abs)[index]
 ev = ev[:,ii]
 Lam = sqrt.(Lam[index]/Lam[1]);
 
 mode(j) = reshape(ev[:,j], M, N2)
+
+yy = -1:0.01:1;  xx = yy'
+M2 = M÷2
+function interpolate(u)
+    rr = hypot.(xx,yy)
+    hh = atan.(yy,xx)
+    uu = zeros(eltype(u), size(rr))
+    for j = 1:M2
+        v = [0; u[j,:]; reverse(u[j+M2,:]); 0];
+        p = fit(r,v)
+        uu .+= (rr .≤ 1).*p.(rr).*sinc.(hh.-θ[j])
+        uu .+= (rr .≤ 1).*p.(-rr).*sinc.(hh.-θ[j+M2])
+    end
+    uu
+end
+
+sinc(x) = (x ≈ 0) ? zero(x) : sin(π*x/dθ)/(2π/dθ)/tan(x/2)
+
+zplot(ψ) = plot(xx[:], yy, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
+zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
+argplot(ψ) = plot(xx[:], yy, portrait(reverse(ψ,dims=1)), aspect_ratio=1)
+argplot(ψ::Matrix{<:Real}) = argplot(Complex.(ψ))
 
 # Plots
 rr = (rint[1:end-1] .+ rint[2:end])/2

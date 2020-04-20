@@ -34,20 +34,19 @@ E(xy) = sum(conj.(togrid(xy)).*Ham(togrid(xy))) |> real
 grdt!(buf,xy) = copyto!(buf, 2*L(togrid(xy))[:])
 togrid(xy) = reshape(xy, size(z))
 
-@load "romodes.jld2" Ω result psi
-ψ = psi
+@load "romodes.jld2" Ω ψ ωs uvs nconv niter nmult resid
    
 # sound wave spectrum
 
-μ = sum(conj.(ψ).*L(ψ)) |> real
-eye = Matrix(I,N,N)
-H = -kron(eye, ∂²)/2 - kron(∂², eye)/2 + diagm(0=>V[:]) - μ*Matrix(I,N^2,N^2)
-J = 1im*(repeat(y,1,N)[:].*kron(∂,eye)-repeat(x,N,1)[:].*kron(eye,∂))
-Q = diagm(0=>ψ[:])
-    BdGmat = [
-        H+2C/h*abs2.(Q)-Ω*J    -C/h*Q.^2;
-        C/h*conj.(Q).^2    -H-2C/h*abs2.(Q)-Ω*J
-    ]
+# μ = sum(conj.(ψ).*L(ψ)) |> real
+# eye = Matrix(I,N,N)
+# H = -kron(eye, ∂²)/2 - kron(∂², eye)/2 + diagm(0=>V[:]) - μ*Matrix(I,N^2,N^2)
+# J = 1im*(repeat(y,1,N)[:].*kron(∂,eye)-repeat(x,N,1)[:].*kron(eye,∂))
+# Q = diagm(0=>ψ[:])
+#     BdGmat = [
+#         H+2C/h*abs2.(Q)-Ω*J    -C/h*Q.^2;
+#         C/h*conj.(Q).^2    -H-2C/h*abs2.(Q)-Ω*J
+#     ]
 
 #    nnc += b*(reshape(sum(abs2.(ev[N^2+1:end,2:end]), dims=2), size(ψ)) - nnc)
 #    push!(oprm, copy(ψ₀))

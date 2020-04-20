@@ -4,10 +4,10 @@ using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Arpack
 using Plots, ComplexPhasePortrait
 
 # C = 250.0
-C = 350.0
+C = 500.0
 Ω = 0.0
 R = 1.3
-w = 0.15	# moat width
+w = 0.1	# moat width
 # ω = -2.86	# potential offset outside moat for lock step
 # ω = -10.0	# potential offset outside moat for fast vortex
 ω = 0.0
@@ -72,7 +72,7 @@ result = optimize(E, grdt!, z[:],
 # Offset.  TODO fix parameters
 
 kelvin = exp.(-abs2.(z)/1/R^2)
-φ .+= 0.025kelvin
+φ .+= 0.05kelvin
 
 # Define this early for cut, paste and @load
 # Offset W in place of V
