@@ -1,13 +1,17 @@
 # Julia port of Program 28 from SMM
 
 # TODO
-# scale r axis to usual units
+# implement Ellipsoid manifold for Optim, test with SHO ground state
 # find ground state by Optim
 # add repulsion
 # find offset vortex
 
 using LinearAlgebra, ToeplitzMatrices, Polynomials
 
+R = 2.0		# disk domain radius
+Ω = 0.1
+
+# Chebyshev grid and derivative matrix on [-1,1]
 function cheb(N::Integer)
     N == 0 && return (0, 1)
     x = cos.(π*(0:N)/N)
@@ -22,6 +26,8 @@ end
 N = 25;  @assert N % 2 == 1
 N2 = (N-1)÷2
 D, r = cheb(N)
+r *= R
+D /= R
 D2 = D^2
 D1 = D2[2:N2+1,2:N2+1]; D2 = D2[2:N2+1,N:-1:N2+2]
 E1 =  D[2:N2+1,2:N2+1]; E2 =  D[2:N2+1,N:-1:N2+2]
@@ -36,28 +42,24 @@ D2θ = Toeplitz(rc, rc)
 
 # Laplacian in polar coordinates:
 rint = r[2:N2+1]
-R = 1 ./ rint |> Diagonal
+S = 1 ./ rint |> Diagonal
 Z = zeros(M2,M2)
-L = kron(D1+R*E1,Matrix(I,M,M)) +
-    kron(D2+R*E2,[Z I;I Z]) +
-    kron(R^2,D2θ)
+L = kron(D1+S*E1,Matrix(I,M,M)) +
+    kron(D2+S*E2,[Z I;I Z]) +
+    kron(S^2,D2θ)
 
-# U = rint'.*exp.(-5rint'.^2 .+ 1im*θ);
-
-# push up V for now, scale the SMM coordinates later
-V = 300*kron(Diagonal(rint.^2),Matrix(I,M,M))
+V = kron(Diagonal(rint.^2),Matrix(I,M,M))
 J = 1im*kron(Matrix(I,N2,N2), Dθ)
 
 # eigenmodes
 index = 1:10
-Lam, ev = eigen(-L.+V-0.1J)
-ii = sortperm(Lam; by=abs)[index]
+ωs, ev = eigen(-L/2 .+ V - Ω*J)
+ii = sortperm(ωs; by=abs)[index]
 ev = ev[:,ii]
-Lam = sqrt.(Lam[index]/Lam[1]);
 
 mode(j) = reshape(ev[:,j], M, N2)
 
-yy = -1:0.01:1;  xx = yy'
+yy = -R:R/50:R;  xx = yy'
 M2 = M÷2
 function interpolate(u)
     rr = hypot.(xx,yy)
@@ -66,8 +68,8 @@ function interpolate(u)
     for j = 1:M2
         v = [0; u[j,:]; reverse(u[j+M2,:]); 0];
         p = fit(r,v)
-        uu .+= (rr .≤ 1).*p.(rr).*sinc.(hh.-θ[j])
-        uu .+= (rr .≤ 1).*p.(-rr).*sinc.(hh.-θ[j+M2])
+        uu .+= (rr .≤ R).*p.(rr).*sinc.(hh.-θ[j])
+        uu .+= (rr .≤ R).*p.(-rr).*sinc.(hh.-θ[j+M2])
     end
     uu
 end
@@ -93,8 +95,8 @@ ppix(j,k) = vtxs(j,k) |> Shape
 function rplot(u)
     P = plot(
         bg = :black,
-        xlim = (-1, 1),
-        ylim = (-1, 1),
+        xlim = (-R, R),
+        ylim = (-R, R),
         framestyle = :none,
         legend = false,
         aspect_ratio = 1

@@ -2,6 +2,8 @@ cp /Users/rpolkinghorne/Desktop/ozfred/ROA/romodes.jld2 .
 /Users/rpolkinghorne/Desktop/ozfred/ROA/romodes.jl
 ssh -l rpolking ozstar.swin.edu.au 'cd /fred/oz127/rpolking/ROA; sbatch runjob'
 
+10632539 ROA BdG modes with Householder reflection
+
 r₀ = 1.9
 
 	Ω
