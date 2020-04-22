@@ -1,0 +1,14 @@
+sshfs rpolking@ozstar.swin.edu.au: $DESK/ozstar
+sshfs rpolking@ozstar.swin.edu.au:/fred/oz127/rpolking $DESK/ozfred
+win ssh -l rpolking ozstar.swin.edu.au
+cd /fred/oz127/rpolking
+9 ls -t $DESK/ozstar | head -6
+/Users/rpolkinghorne/Desktop/ozstar
+/Users/rpolkinghorne/Desktop/ozfred
+web https://supercomputing.swin.edu.au/monitor/
+web https://supercomputing.swin.edu.au/docs
+for (file in `{du -a $HOME | awk '/\.git$/ {print $2}'}) {echo '******  '^$file^'  ******'; git -C $file/.. status}
+for (f in `{ls -t *.jl | head -10}) echo $f `{head -1 $f}
+9 grep -h '^(z|arg)plot' `{ls -t *.jl} | head -4
+g '\\title' notes/*.tex
+ls figs/resp*.pdf | sort | tail -1

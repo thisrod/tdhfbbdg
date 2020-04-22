@@ -1,12 +1,15 @@
 # Julia port of Program 28 from SMM
 
 # TODO
-# implement Ellipsoid manifold for Optim, test with SHO ground state
-# find ground state by Optim
+# find SHO ground state by Optim
 # add repulsion
 # find offset vortex
+# debug fit instability for large N
+# attempt to derive Clenshaw-Curtis weights in closed form
 
-using LinearAlgebra, ToeplitzMatrices, Polynomials
+using LinearAlgebra, ToeplitzMatrices, Polynomials, Optim
+using Statistics: mean
+using Plots, ComplexPhasePortrait
 
 R = 2.0		# disk domain radius
 Ω = 0.1
@@ -48,6 +51,23 @@ L = kron(D1+S*E1,Matrix(I,M,M)) +
     kron(D2+S*E2,[Z I;I Z]) +
     kron(S^2,D2θ)
 
+# Quadrature weights
+# Need closed form to be stable for large N
+# Try Julia's Tsebyshev polynomials as well
+# For interpolation, wrap sinc around a cylinder
+
+w = zeros(1,N2)
+for j = 1:N2
+    v = zero(r)
+    v[j+1] = v[end-j] = 1
+    p = Polynomial([0,1])*fit(r,v)
+    p = integrate(p)
+    w[j] = 2π*(p(R)-p(0))/M
+end
+
+# unweight is L² normalized if x is l² normalized
+unweight(x) = x./sqrt.(w)
+
 V = kron(Diagonal(rint.^2),Matrix(I,M,M))
 J = 1im*kron(Matrix(I,N2,N2), Dθ)
 
@@ -56,6 +76,9 @@ index = 1:10
 ωs, ev = eigen(-L/2 .+ V - Ω*J)
 ii = sortperm(ωs; by=abs)[index]
 ev = ev[:,ii]
+
+# Optim ground state
+# think about gradient and unweight
 
 mode(j) = reshape(ev[:,j], M, N2)
 
