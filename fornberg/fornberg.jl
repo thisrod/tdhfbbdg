@@ -5,6 +5,7 @@
 # add repulsion
 # find offset vortex
 # debug fit instability for large N
+# derive Clenshaw-Curtis weights by fourier transforms
 # attempt to derive Clenshaw-Curtis weights in closed form
 
 using LinearAlgebra, ToeplitzMatrices, Polynomials, Optim
@@ -52,7 +53,6 @@ L = kron(D1+S*E1,Matrix(I,M,M)) +
     kron(S^2,D2θ)
 
 # Quadrature weights
-# Need closed form to be stable for large N
 # Try Julia's Tsebyshev polynomials as well
 # For interpolation, wrap sinc around a cylinder
 
@@ -66,19 +66,36 @@ for j = 1:N2
 end
 
 # unweight is L² normalized if x is l² normalized
-unweight(x) = x./sqrt.(w)
+# x is a splatted vector
+function unweight(x)
+    x = reshape(x, M, N2)
+    y = x./sqrt.(w)
+    y[:]
+end
 
 V = kron(Diagonal(rint.^2),Matrix(I,M,M))
 J = 1im*kron(Matrix(I,N2,N2), Dθ)
+H = -L/2 + V - Ω*J
 
 # eigenmodes
 index = 1:10
-ωs, ev = eigen(-L/2 .+ V - Ω*J)
+ωs, ev = eigen(H)
 ii = sortperm(ωs; by=abs)[index]
 ev = ev[:,ii]
 
 # Optim ground state
-# think about gradient and unweight
+# The vector x is multiplied by the quadature weights, so that a
+# normalised x represents a normalised wave function.  The function
+# unweight inverts this.
+
+f(x) = dot(x, H*x) |> real
+g(x) = 2*H*x		# linear unweight is its own derivative
+g!(stor,x) = copyto!(stor,g(x))
+init = repeat(rint'.*exp.(-rint.^2)', M, 1)
+init = Complex.(init[:])
+result = Optim.optimize(f, g!, init,
+    Optim.GradientDescent(manifold=Optim.Sphere()),
+    Optim.Options(iterations = 10_000, allow_f_increases=true))
 
 mode(j) = reshape(ev[:,j], M, N2)
 
