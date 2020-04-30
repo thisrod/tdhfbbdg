@@ -3,8 +3,7 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Arpack
 using Plots, ComplexPhasePortrait
 
-# C = 250.0
-C = 1000.0
+C = 250.0
 Ω = 0.0
 R = 1.3
 w = 0.1	# moat width
@@ -60,7 +59,7 @@ P = Diagonal(sqrt.(rc^4 .+ V[:].^2))
 
 # TODO relax residual tolerance
 init = z.*(r .< (R-w))
-result = optimize(E, grdt!, z[:],
+result = optimize(E, grdt!, init[:],
     GradientDescent(manifold=Sphere()),
     Optim.Options(iterations = 10000, allow_f_increases=true)
 )
@@ -72,6 +71,7 @@ result = optimize(E, grdt!, z[:],
 # Offset.  TODO fix parameters
 
 kelvin = exp.(-abs2.(z)/1/R^2)
+kelvin ./= norm(kelvin)
 φ .+= 0.05kelvin
 
 # Define this early for cut, paste and @load
@@ -85,6 +85,9 @@ m = sum(conj.(φ).*Lφ) |> real
 
 P = ODEProblem(f, φ, (0.0,1.0), saveat=0.05)
 # S = solve(P)
+
+# hh = 2π*(0:0.01:1)
+# plot!(R*sin.(hh), R*cos.(hh), lc=:white, leg=:none)
 
 function poles(u)
     st = [-h 0 h]

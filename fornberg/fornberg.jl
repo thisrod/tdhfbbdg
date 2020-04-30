@@ -7,6 +7,7 @@
 # debug fit instability for large N
 # derive Clenshaw-Curtis weights by fourier transforms
 # attempt to derive Clenshaw-Curtis weights in closed form
+# Barycentric interpolation
 
 using LinearAlgebra, ToeplitzMatrices, Polynomials, Optim
 using Statistics: mean
@@ -14,6 +15,7 @@ using Plots, ComplexPhasePortrait
 
 R = 2.0		# disk domain radius
 Ω = 0.1
+C = 50
 
 # Chebyshev grid and derivative matrix on [-1,1]
 function cheb(N::Integer)
@@ -54,7 +56,7 @@ L = kron(D1+S*E1,Matrix(I,M,M)) +
 
 # Quadrature weights
 # Try Julia's Tsebyshev polynomials as well
-# For interpolation, wrap sinc around a cylinder
+# For stable interpolation, wrap sinc around a cylinder
 
 w = zeros(1,N2)
 for j = 1:N2
@@ -94,7 +96,7 @@ g!(stor,x) = copyto!(stor,g(x))
 init = repeat(rint'.*exp.(-rint.^2)', M, 1)
 init = Complex.(init[:])
 result = Optim.optimize(f, g!, init,
-    Optim.GradientDescent(manifold=Optim.Sphere()),
+    Optim.ConjugateGradient(manifold=Optim.Sphere()),
     Optim.Options(iterations = 10_000, allow_f_increases=true))
 
 mode(j) = reshape(ev[:,j], M, N2)
