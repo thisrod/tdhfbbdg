@@ -1,0 +1,7 @@
+1. Try all combinations of BC, initial condition, moat with C = 250, for a few dozen steps, on desktop.
+
+ssh -l rpolking ozstar.swin.edu.au 'cd /fred/oz127/rpolking/MOC; sbatch runjob'
+cp /Users/rpolkinghorne/Desktop/ozfred/MOC/rmoat.jld2 shell
+/Users/rpolkinghorne/Desktop/ozfred/MOC/moat.jl
+
+MOC larger moat radius

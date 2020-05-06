@@ -1,11 +1,17 @@
-# ground state and GPE dynamics for a harmonic trap with a moat
+# display shell for MO cluster runs
 
-using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Arpack
+using LinearAlgebra, BandedMatrices, Optim, JLD2
+
 using Plots, ComplexPhasePortrait
 
-C = 250.0
+zplot(ψ) = plot(x[:], y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
+zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
+argplot(ψ) = plot(x[:], y, portrait(reverse(ψ,dims=1)), aspect_ratio=1)
+argplot(ψ::Matrix{<:Real}) = argplot(Complex.(ψ))
+
+C = 10_000.0
 Ω = 0.0
-R = 1.3
+R = 1.7
 w = 0.1	# moat width
 # ω = -2.86	# potential offset outside moat for lock step
 # ω = -10.0	# potential offset outside moat for fast vortex
@@ -22,7 +28,6 @@ r = abs.(z)
 r² = abs2.(z)
 
 V = r²  + 20*R^2*exp.(-(r.-R).^2/2/w^2)
-W = V .+ ω*(r.>R)
 
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
@@ -35,12 +40,6 @@ end
 # Hard zero boundary conditions.
 ∂ = (1/h).*op([0, -1/2, 0, 1/2, 0])
 ∂² = (1/h^2).*op(Float64[0, 0, 1, -2, 1, 0, 0])
-
-# kludge BC
-∂[1,:] .= ∂[2,:]
-∂[end,:] .= ∂[end-1,:]
-∂²[1,:] .= ∂²[2,:]
-∂²[end,:] .= ∂²[end-1,:]
 
 # Minimise the energy 
 #
@@ -57,34 +56,7 @@ togrid(xy) = reshape(xy, size(z))
 rc = 2	# condensate radius, 
 P = Diagonal(sqrt.(rc^4 .+ V[:].^2))
 
-# TODO relax residual tolerance
-init = z.*(r .< (R-w))
-result = optimize(E, grdt!, init[:],
-    GradientDescent(manifold=Sphere()),
-    Optim.Options(iterations = 10000, allow_f_increases=true)
-)
-ψ = togrid(result.minimizer)
-
-φ = copy(ψ)
-φ[r.>R] = abs.(φ[r.>R])
-
-# Offset.  TODO fix parameters
-
-kelvin = exp.(-6*abs2.(z)/R^2)
-kelvin ./= norm(kelvin)
-φ .+= 0.05kelvin
-
-# Define this early for cut, paste and @load
-# Offset W in place of V
-f(ψ,_,_) = -1im*(-(∂²*ψ+ψ*∂²')/2+(W.-m).*ψ+C/h*abs2.(ψ).*ψ)
-
-# Solve the GPE
-
-Lφ = -(∂²*φ+φ*∂²')/2+V.*φ+C/2h*abs2.(φ).*φ
-m = sum(conj.(φ).*Lφ) |> real
-
-P = ODEProblem(f, φ, (0.0,1.0), saveat=0.05)
-# S = solve(P)
+@load "rmoat.jld2" result ψ
 
 # hh = 2π*(0:0.01:1)
 # plot!(R*sin.(hh), R*cos.(hh), lc=:white, leg=:none)
@@ -104,18 +76,25 @@ end
 function locmax(u, ix::CartesianIndex)
     j, k = Tuple(ix)
     1 < j < size(u,1) && 1 < k < size(u,2) &&
-        real(u[j,k]) > 0.1 &&
+        real(u[j,k]) > 0.05 &&
         real(u[j,k]) ≈ maximum(real, u[j-1:j+1, k-1:k+1])
 end
 
 locmax(u) = [k for k in keys(u) if locmax(u, k)]
 
+function zmax(u)
+    # coordinates at cluster centres
+    # figure out why this swaps real and imag parts
+    S = cluster_adjacent(adjacent_index, locmax(u))
+    [Complex(h.*(Tuple(sum(s)) ./ length(s) .- (N-1)/2)...) for s in S]
+end
+
 function show_vortices(u)
     P, Q = poles(u)
     function markup!(X, col)
         zin = z[2:end-1, 2:end-1]
-        f!(R, sym) = scatter!(X, real.(zin[locmax(R)]), imag.(zin[locmax(R)]), m=sym, ms=1, mc=col, msw=0, leg=:none)
-        f!(Q, :cross)
+        f!(R, sym) = scatter!(X, imag.(zmax(R)), real.(zmax(R)), m=sym, ms=1, mc=col, msw=0, leg=:none)
+        f!(Q, :circle)
         f!(P, :xcross)
     end
     A, B = (heatmap(x[2:end-1], y[2:end-1], real.(reverse(v,dims=1)), aspect_ratio=1) for v in poles(u))
@@ -125,3 +104,25 @@ function show_vortices(u)
     markup!(D, :black)
     plot(C, D, B, A, layout = @layout [a b; c d])
 end
+
+function cluster_adjacent(f, ixs)
+    # function f determines adjacency
+    clusters = Set()
+    for i in ixs
+        out = Set()
+        ins = Set()
+        for C in clusters
+            if any(j -> f(i,j), C)
+                push!(ins, C)
+            else
+                push!(out, C)
+            end
+        end
+        push!(out, union(Set([i]), ins...))
+        clusters = out
+    end
+    clusters
+end
+
+adjacent_index(j, k) =
+    -1 ≤ j[1] - k[1] ≤ 1 && -1 ≤ j[2] - k[2] ≤ 1
