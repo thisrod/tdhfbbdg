@@ -1,6 +1,6 @@
 # ground state and GPE dynamics for a harmonic trap with a moat
 
-using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations
+using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Statistics
 using Plots, ComplexPhasePortrait
 
 C = 10_000.0
@@ -18,7 +18,17 @@ y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
 r = abs.(z)
 r² = abs2.(z)
 
-V = r²  + 20*R^2*exp.(-(r.-R).^2/2/w^2)
+# Absorbing boundary
+
+function ab(bord)
+    hedg(x) = exp(-(x-maximum(y))^2/2/bord^2)
+    edg(x) = hedg(x) + hedg(-x)
+    @. log(exp(edg(x))+exp(edg(y)))
+end
+
+mt = @. exp(-(r-R)^2/2/w^2)
+
+V = r²  + 20*R^2*mt + 100*ab(0.2)
 W = V .+ ω*(r.>R)
 
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
@@ -74,8 +84,6 @@ end
 # scatter(y, real.(φ[80,:]), ms=2,mc=:black,msw=0,leg=:none)
 # scatter(y, imag.(φ[80,:]), ms=2,mc=:red,msw=0,leg=:none)
 
-V = r²  + 20*R^2*exp.(-(r.-R).^2/2/w^2);
-
 # relax moat density to residual where vortex disappears
 ψ = copy(φ1);
 result = optimize(E, grdt!, ψ[:],
@@ -85,15 +93,26 @@ result = optimize(E, grdt!, ψ[:],
 ψ = togrid(result.minimizer);
 
 # Offset W in place of V, absorb KE
-f(ψ,_,_) = -1im*(-(1-0.5im)*(∂²*ψ+ψ*∂²')/2+(W.-m).*ψ+C/h*abs2.(ψ).*ψ)
+f(ψ,_,_) = -1im*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(1.0ab(0.1)+10.0mt)).*ψ+C/h*abs2.(ψ).*ψ)
 
 # Solve the GPE
 
 Lψ = -(∂²*ψ+ψ*∂²')/2+V.*ψ+C/2h*abs2.(ψ).*ψ
 m = sum(conj.(ψ).*Lψ) |> real
 
-# P = ODEProblem(f, ψ, (0.0,0.1), saveat=0.05)
-# S = solve(P)
+P = ODEProblem(f, ψ, (0.0,0.1), saveat=0.05)
+S = solve(P)
+
+# scatter([norm(S[j]) for j = eachindex(S)])
+
+# fudge phase
+
+function fudge(u)
+    hat = mean(@. u*(abs(z)>2))
+    hat /= abs(hat)
+    u ./ (norm(u)*hat)
+end
+T = [fudge(S[j]) for j = eachindex(S)]
 
 # plot(zplot(ψ), scatter(abs.(z[:]), abs.(fft(ψ)[:]), yscale=:log10, ms=2, mc=:black, msw=0, leg=:none), layout = @layout [a b])
 
