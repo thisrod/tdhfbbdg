@@ -12,7 +12,7 @@ w = 0.1	# moat width
 ω = 0.0
 
 h = 0.05
-N = 120
+N = 150
 
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
 r = abs.(z)
@@ -20,16 +20,13 @@ r² = abs2.(z)
 
 # Absorbing boundary
 
-function ab(bord)
-    hedg(x) = exp(-(x-maximum(y))^2/2/bord^2)
-    edg(x) = hedg(x) + hedg(-x)
-    @. log(exp(edg(x))+exp(edg(y)))
+function ab(rvac, bord)
+    out = @. exp(-(r-rvac)^2/2/bord^2)
+    out[r .> rvac] .= 1
+    out
 end
 
 mt = @. exp(-(r-R)^2/2/w^2)
-
-V = r²  + 20*R^2*mt + 100*ab(0.2)
-W = V .+ ω*(r.>R)
 
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
@@ -61,11 +58,30 @@ E(xy) = sum(conj.(togrid(xy)).*Ham(togrid(xy))) |> real
 grdt!(buf,xy) = copyto!(buf, 2*L(togrid(xy))[:])
 togrid(xy) = reshape(xy, size(z))
 
+# relax density at boundary
+
+V = r² + 100*ab(3, 0.2)
+
+φ = similar(z);
+fill!(φ,1);
+result = optimize(E, grdt!, φ[:],
+     GradientDescent(manifold=Sphere()),
+     Optim.Options(iterations=3, g_tol=1e-6, allow_f_increases=true)
+);
+φ = togrid(result.minimizer);
+
+V += 20*R^2*mt
+W = V .+ ω*(r.>R)
+
 # relax soliton phase to moat vortex
 
-φ = z .+ 0.7
-@. φ[abs(z) > R] = 1
-@. φ /= abs(φ)
+# φ = similar(z)
+# fill!(φ,1)
+# φ /= norm(φ)
+
+phs = z .+ 0.7
+@. phs /= abs(phs)
+φ[@. abs(z) < R] .*= phs[@. abs(z) < R]
 
 # relax high momenta
 
@@ -88,12 +104,12 @@ end
 ψ = copy(φ1);
 result = optimize(E, grdt!, ψ[:],
      GradientDescent(manifold=Sphere()),
-     Optim.Options(iterations=500, g_tol=0.02, allow_f_increases=true)
+     Optim.Options(iterations=100, g_tol=0.02, allow_f_increases=true)
  );
 ψ = togrid(result.minimizer);
 
 # Offset W in place of V, absorb KE
-f(ψ,_,_) = -1im*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(1.0ab(0.1)+10.0mt)).*ψ+C/h*abs2.(ψ).*ψ)
+f(ψ,_,_) = -1im*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(1.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)
 
 # Solve the GPE
 
