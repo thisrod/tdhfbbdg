@@ -2,14 +2,13 @@
 
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, JLD2
 
-T = 4.0		# integration time
+T = 20		# integration time
 l = 0.15		# time step to save psi
 C = 10_000.0
 Ω = 0.0
 R = 1.7
-w = 0.1	# moat width
-# ω = -2.86	# potential offset outside moat for lock step
-# ω = -10.0	# potential offset outside moat for fast vortex
+# w = 0.1
+w = 0.2	# double moat width
 ω = 0.0
 
 h = 0.05
@@ -99,7 +98,7 @@ result = optimize(E, grdt!, ψ[:],
 ψ = togrid(result.minimizer);
 
 # Offset W in place of V, absorb KE
-f(ψ,_,_) = -1im*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(1.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)
+f(ψ,_,_) = -1im*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(10.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)
 
 # Solve the GPE
 

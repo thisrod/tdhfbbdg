@@ -3,7 +3,9 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Statistics, JLD2
 using Plots, ComplexPhasePortrait
 
-@load "moat.jld2" C W R y w steps
+results = "out5.jld2"
+
+@load results C W R y w steps
 Ω = W
 
 N = length(y)
@@ -32,8 +34,6 @@ end
 ∂²[1,:] .= ∂²[2,:]
 ∂²[end,:] .= ∂²[end-1,:]
 
-# scatter([norm(S[j]) for j = eachindex(S)])
-
 # fudge phase
 
 function fudge(u)
@@ -41,7 +41,6 @@ function fudge(u)
     hat /= abs(hat)
     u ./ (norm(u)*hat)
 end
-# T = [fudge(S[j]) for j = eachindex(S)]
 
 # plot(zplot(ψ), scatter(abs.(z[:]), abs.(fft(ψ)[:]), yscale=:log10, ms=2, mc=:black, msw=0, leg=:none), layout = @layout [a b])
 
@@ -49,7 +48,7 @@ end
 # plot!(R*sin.(hh), R*cos.(hh), lc=:white, leg=:none)
 
 function load_moat(j)
-    jldopen("moat.jld2", "r") do file
+    jldopen(results, "r") do file
         file["psi$(j)"], file["t$(j)"]
     end
 end
@@ -124,3 +123,28 @@ end
 
 adjacent_index(j, k) =
     -1 ≤ j[1] - k[1] ≤ 1 && -1 ≤ j[2] - k[2] ≤ 1
+
+# qslice = (ψ[N÷2,:] + ψ[N÷2+1,:])/2
+# P1 = scatter(y, real.(qslice), ms=1.5, mc=:black, msw=0, leg=:none)
+# xlabel!("x");  ylabel!("psi");  title!("Slice along x-axis")
+# vslice = (V[N÷2,:] + V[N÷2+1,:])/2
+# A = 4.0ab(3.3, 0.1);  aslice = (A[N÷2,:] + A[N÷2+1,:])/2;
+# P2 = scatter(y, aslice, ms=1.5, mc=:red, msw=0, leg=:none)
+# scatter!(y, vslice, ms=1.5, mc=:black, msw=0, leg=:none)
+# plot!(xlims() |> collect, [m, m], lc=:blue, lw=2)
+# ylabel!("V, absn red, mu blue")
+
+function berry_phases()
+    φ = Float64[]
+    tt = Float64[]
+    q1, t1 = load_moat(0)
+    Q1 = fudge(q1)
+    for j = 1:steps
+        q2, t2 = load_moat(j)
+        Q2 = fudge(q2)
+        push!(φ, sum(@. conj(Q2)*Q1 |> imag))
+        push!(tt, t2)
+        Q1 = Q2
+    end
+    φ, tt
+end
