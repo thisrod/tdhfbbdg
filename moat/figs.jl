@@ -3,7 +3,7 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Statistics, JLD2
 using Plots, ComplexPhasePortrait
 
-results = "out5.jld2"
+results = "out6.jld2"
 
 @load results C W R y w steps
 Ω = W
@@ -147,4 +147,19 @@ function berry_phases()
         Q1 = Q2
     end
     φ, tt
+end
+
+function pcis(t)
+    φ = zeros(N, N)
+    q1, t1 = load_moat(0)
+    Q1 = fudge(q1)
+    t2 = NaN
+    for j = 1:steps
+        q2, t2 = load_moat(j)
+        Q2 = fudge(q2)
+        @. φ += conj(Q2)*Q1 |> imag
+        (t2 > t || t2 ≈ t) && break
+        Q1 = Q2
+    end
+    φ, t2
 end
