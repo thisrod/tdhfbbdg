@@ -1,19 +1,5 @@
-1. Try all combinations of BC, initial condition, moat with C = 250, for a few dozen steps, on desktop.
+Trial runs:
 
-ssh -l rpolking ozstar.swin.edu.au 'cd /fred/oz127/rpolking/MOC; sbatch runjob'
-cp /Users/rpolkinghorne/Desktop/ozfred/MOC/rmoat.jld2 shell
-/Users/rpolkinghorne/Desktop/ozfred/MOC/moat.jl
+out5.jld2	Reasonably stable
 
-MOC larger moat radius
-
-Pixelation experiments
-
-Note that 1 or 3 presteps shouldn't make a difference, with 100 steps later
-
-100 steps, moat height 5, harmonic trap: unpixelated, parasitic solution at t=0.6
-500 steps, moat height 5, harmonic trap: pixelated, small parasitic solution (check)
-
-100 steps, moat height 5, flat trap: pixelated outside moat, small parasitic solution
-1 step of relaxed density, 100 steps, moat height 5, harmonic trap: as for 0 steps
-3 steps of relaxed density, 100 steps, moat height 5, harmonic trap: slightly pixelated
-10 steps of relaxed density, 100 steps, moat height 5, harmonic trap: pixelated
+out7.jld2	Strong enough boundary damping to reduce norm.  Timescale on which norm peaks gives and idea how long the wave function takes to relax.

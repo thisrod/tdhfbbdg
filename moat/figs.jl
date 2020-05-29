@@ -3,7 +3,7 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Statistics, JLD2
 using Plots, ComplexPhasePortrait
 
-results = "out6.jld2"
+results = "out7.jld2"
 
 @load results C W R y w steps
 Ω = W
@@ -149,6 +149,21 @@ function berry_phases()
     φ, tt
 end
 
+function berry_step(j)
+    q1, t1 = load_moat(j)
+    Q1 = fudge(q1)
+    q2, t2 = load_moat(j+1)
+    Q2 = fudge(q2)
+    @. conj(Q2)*Q1 |> imag
+end
+
+function show_step(j)
+    P1 = load_moat(j) |> first |> fudge |> argplot
+    P2 = berry_step(j) |> zplot
+    P3 = load_moat(j+1) |> first |> fudge |> argplot
+    plot(P1, P2, P3, layout = @layout[a b c])
+end
+
 function pcis(t)
     φ = zeros(N, N)
     q1, t1 = load_moat(0)
@@ -163,3 +178,7 @@ function pcis(t)
     end
     φ, t2
 end
+
+# nn = [norm(load_moat(j) |> first) for j = 1:steps]
+
+show_vortices(j::Int) = load_moat(j) |> first |> show_vortices

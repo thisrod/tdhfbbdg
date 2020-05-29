@@ -1,4 +1,8 @@
-# ground state and GPE dynamics for a harmonic trap with a moat
+# GPE dynamics for a harmonic trap with a moat, adiabatic damping version
+
+source = open("cpu.jl") do f
+    read(f, String)
+end
 
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, JLD2
 
@@ -9,7 +13,8 @@ C = 10_000.0
 R = 1.7
 # w = 0.1
 w = 0.2	# double moat width
-ω = -3.0
+# ω = -3.0
+ω = 0.0
 
 h = 0.05
 N = 150
@@ -97,8 +102,10 @@ result = optimize(E, grdt!, ψ[:],
  );
 ψ = togrid(result.minimizer);
 
+ramp(t) = t > 1 ? t : 0.5 + 0.5tanh(1/3t + 1/3(t-1))
+
 # Offset W in place of V, absorb KE
-f(ψ,_,_) = -1im*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(10.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)
+f(ψ,_,t) = -(1im+0.01ramp(t))*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(3.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)
 
 # Solve the GPE
 
@@ -111,6 +118,8 @@ jldopen("moat.jld2", "w") do file
     file["R"] = R
     file["y"] = y
     file["w"] = w
+    file["ww"] = ω
+    file["source"] = source
     j = 1
     t = 0.0
     q = ψ
