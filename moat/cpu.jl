@@ -45,12 +45,6 @@ end
 ∂ = (1/h).*op([0, -1/2, 0, 1/2, 0])
 ∂² = (1/h^2).*op(Float64[0, 0, 1, -2, 1, 0, 0])
 
-# kludge BC
-∂[1,:] .= ∂[2,:]
-∂[end,:] .= ∂[end-1,:]
-∂²[1,:] .= ∂²[2,:]
-∂²[end,:] .= ∂²[end-1,:]
-
 # Minimise the energy 
 #
 # E(ψ) = -∫ψ*∇²ψ/2 + V|ψ|²+g/2·|ψ|⁴-Ω·ψ*Jψ
@@ -102,7 +96,7 @@ result = optimize(E, grdt!, ψ[:],
  );
 ψ = togrid(result.minimizer);
 
-ramp(t) = t > 1 ? t : 0.5 + 0.5tanh(1/3t + 1/3(t-1))
+ramp(t) = t > 1 ? 0.0 : 0.5 + 0.5tanh(1/3t + 1/3(t-1))
 
 # Offset W in place of V, absorb KE
 f(ψ,_,t) = -(1im+0.01ramp(t))*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(3.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)

@@ -1,5 +1,17 @@
+ssh -l rpolking ozstar.swin.edu.au 'cd /fred/oz127/rpolking/MOC; sbatch runjob'
+
 Trial runs:
 
-out5.jld2	Reasonably stable
+Boundary absorption 3.0 always fails due to sound waves around t = 6.
 
-out7.jld2	Strong enough boundary damping to reduce norm.  Timescale on which norm peaks gives and idea how long the wave function takes to relax.
+MOD with 0.01, 10 still has a vortex at t = 20, only loses 10% of atoms
+    Images become pixelated, try larger boundary damping
+    Images messy by t = 5, but Berry phase increases smoothly
+    Neater images around t = 10, but Berry phase spurts
+    Increasing absorption to 20 doesn't fix pixelation
+
+0.03, 10 and 0.1, 10 go nuts
+
+0.01, 30 loses vortex to moat
+
+MOA, MOB, MOC 0.01 with more boundary absorption

@@ -3,9 +3,9 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Statistics, JLD2
 using Plots, ComplexPhasePortrait
 
-results = "out7.jld2"
+results = "shell/B.jld2"
 
-@load results C W R y w steps
+@load results C W R y w steps source
 Ω = W
 
 N = length(y)
@@ -179,6 +179,18 @@ function pcis(t)
     φ, t2
 end
 
-# nn = [norm(load_moat(j) |> first) for j = 1:steps]
+function diagnostic(s="")
+    ff, tt = berry_phases()
+    nn = [norm(load_moat(j) |> first) for j = 1:steps]
+    P1 = scatter(tt, nn, ms=3, mc=:black, msw=0, leg=:none)
+    title!(s)
+    ylabel!("norm(psi)")
+    P2 = scatter(tt, cumsum(ff), ms=3, mc=:black, msw=0, leg=:none)
+    xlabel!("t")
+    ylabel!("berry phase")
+    plot(P1, P2, layout = @layout [a; b])
+end
+
+# [l for l in split(source, '\n') if occursin("f(ψ,_,t) =", l)] |> first
 
 show_vortices(j::Int) = load_moat(j) |> first |> show_vortices
