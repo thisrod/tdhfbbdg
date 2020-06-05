@@ -1,4 +1,4 @@
-ssh -l rpolking ozstar.swin.edu.au 'cd /fred/oz127/rpolking/MOC; sbatch runjob'
+ssh -l rpolking ozstar.swin.edu.au 'cd /fred/oz127/rpolking/MOF; sbatch runjob'
 
 Trial runs:
 

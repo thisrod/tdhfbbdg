@@ -3,9 +3,10 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Statistics, JLD2
 using Plots, ComplexPhasePortrait
 
-results = "shell/B.jld2"
+results = "shell/GG.jld2"
 
-@load results C W R y w steps source
+# @load results C W R y w steps source
+@load results C W y steps source
 Ω = W
 
 N = length(y)
@@ -14,7 +15,7 @@ x = y';  z = x .+ 1im*y
 r = abs.(z)
 r² = abs2.(z)
 
-mt = @. exp(-(r-R)^2/2/w^2)
+# mt = @. exp(-(r-R)^2/2/w^2)
 
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
@@ -128,11 +129,38 @@ adjacent_index(j, k) =
 # P1 = scatter(y, real.(qslice), ms=1.5, mc=:black, msw=0, leg=:none)
 # xlabel!("x");  ylabel!("psi");  title!("Slice along x-axis")
 # vslice = (V[N÷2,:] + V[N÷2+1,:])/2
-# A = 4.0ab(3.3, 0.1);  aslice = (A[N÷2,:] + A[N÷2+1,:])/2;
+# A = 10.0ab(3.3, 0.1);  aslice = (A[N÷2,:] + A[N÷2+1,:])/2;
 # P2 = scatter(y, aslice, ms=1.5, mc=:red, msw=0, leg=:none)
 # scatter!(y, vslice, ms=1.5, mc=:black, msw=0, leg=:none)
 # plot!(xlims() |> collect, [m, m], lc=:blue, lw=2)
 # ylabel!("V, absn red, mu blue")
+
+function ab(rvac, bord)
+    out = @. exp(-(r-rvac)^2/2/bord^2)
+    out[r .> rvac] .= 1
+    out
+end
+
+function show_slice(j)
+    q = load_moat(j) |> first
+    qslice = (q[N÷2,:] + q[N÷2+1,:])/2
+    U, S, _ = svd([real.(qslice) imag.(qslice)])
+    s = sign(sum(U[:,1]))
+    P1 = scatter(y, s*S[1]*U[:,1], ms=1, mc=:black, msw=0, leg=:none)
+    if S[2] > 1e-3*S[1]
+        scatter!(y, s*S[2]*U[:,2], ms=1, mc=:red, msw=0, leg=:none)
+    end
+    xlabel!("x");  ylabel!("psi");  title!("Slice along x-axis")
+    vslice = (V[N÷2,:] + V[N÷2+1,:])/2
+    A = 10.0ab(3.3, 0.1);  aslice = (A[N÷2,:] + A[N÷2+1,:])/2
+    P2 = scatter(y, aslice, ms=1, mc=:red, msw=0, leg=:none)
+    scatter!(y, vslice, ms=1, mc=:black, msw=0, leg=:none)
+    L = -(∂²*q+q*∂²')/2+V.*q+C/2h*abs2.(q).*q
+    m = sum(conj.(q).*L) |> real
+    plot!(xlims() |> collect, [m, m], lc=:blue, lw=2)
+    ylabel!("V, absn red, mu blue")
+    plot(P1, P2, layout = @layout[a;b])
+end
 
 function berry_phases()
     φ = Float64[]
@@ -194,3 +222,19 @@ end
 # [l for l in split(source, '\n') if occursin("f(ψ,_,t) =", l)] |> first
 
 show_vortices(j::Int) = load_moat(j) |> first |> show_vortices
+
+function show_field(j)
+    ff, tt = berry_phases()
+    nn = [norm(load_moat(j) |> first) for j = 1:steps]
+    P1 = scatter(tt, nn, ms=1, mc=:black, msw=0, leg=:none)
+    scatter!(tt[j:j], nn[j:j], ms=1, mc=:red, msw=0, leg=:none)
+    ylabel!("norm(psi)")
+    F = cumsum(ff)
+    P2 = scatter(tt, F, ms=1, mc=:black, msw=0, leg=:none)
+    scatter!(tt[j:j], F[j:j], ms=1, mc=:red, msw=0, leg=:none)
+    xlabel!("t")
+    ylabel!("berry phase")
+    L = plot(P1, P2, layout = @layout [a; b])
+    q = load_moat(j) |> first
+    plot(L, zplot(q), argplot(q), show_slice(j), layout = @layout [a [b; c] d])
+end

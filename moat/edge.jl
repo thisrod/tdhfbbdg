@@ -1,6 +1,6 @@
-# GPE dynamics for a harmonic trap with a moat, adiabatic damping version
+# GPE dynamics for moat with edge currents
 
-source = open(@__FILE__) do f
+source = open("cpu.jl") do f
     read(f, String)
 end
 
@@ -14,7 +14,7 @@ R = 1.7
 # w = 0.1
 w = 0.2	# double moat width
 # ω = -3.0
-ω = 0.0
+ω = 1.0
 
 h = 0.05
 N = 150
@@ -42,8 +42,8 @@ function op(stencil)
 end
 
 # Hard zero boundary conditions.
-∂ = (1/h).*op([0, -1/2, 0, 1/2, 0])
-∂² = (1/h^2).*op(Float64[0, 0, 1, -2, 1, 0, 0])
+∂ = (1/h).*op([-1/60, 3/20, -3/4, 0, 3/4, -3/20, 1/60])
+∂² = (1/h^2).*op([1/90, -3/20, 3/2, -49/18, 3/2, -3/20, 1/90])
 
 # Minimise the energy 
 #
@@ -57,44 +57,19 @@ E(xy) = sum(conj.(togrid(xy)).*Ham(togrid(xy))) |> real
 grdt!(buf,xy) = copyto!(buf, 2*L(togrid(xy))[:])
 togrid(xy) = reshape(xy, size(z))
 
-# relax density at boundary
+# relax density
 
-V = r² + 100*ab(3, 0.2)
+V = r² + 20*R^2*mt + 100*ab(3, 0.2)
 
 φ = similar(z);
 fill!(φ,1);
 result = optimize(E, grdt!, φ[:],
      GradientDescent(manifold=Sphere()),
-     Optim.Options(iterations=3, g_tol=1e-6, allow_f_increases=true)
+     Optim.Options(iterations=1000, g_tol=1e-6, allow_f_increases=true)
 );
 φ = togrid(result.minimizer);
 
-V += 20*R^2*mt
 W = V .+ ω*(r.>R)
-
-# relax soliton phase to moat vortex
-
-phs = z .+ 0.7
-@. phs /= abs(phs)
-φ[@. abs(z) < R] .*= phs[@. abs(z) < R]
-
-# relax high momenta
-
-a = 0.01	# width of Gaussian to convolve
-φ1 = similar(φ);
-for j = 1:N
-    for k = 1:N
-        φ1[j,k] = sum(@. φ*exp(-abs2(z-z[j,k])/2/a))
-    end
-end
-
-# relax moat density to residual where vortex disappears
-ψ = copy(φ1);
-result = optimize(E, grdt!, ψ[:],
-     GradientDescent(manifold=Sphere()),
-     Optim.Options(iterations=100, g_tol=0.02, allow_f_increases=true)
- );
-ψ = togrid(result.minimizer);
 
 ramp(t) = t > 1 ? 0.0 : 0.5 + 0.5tanh(1/3t + 1/3(t-1))
 
@@ -103,8 +78,8 @@ f(ψ,_,t) = -(1im+0.01ramp(t))*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(3.0ab(3.3, 0.
 
 # Solve the GPE
 
-Lψ = -(∂²*ψ+ψ*∂²')/2+V.*ψ+C/2h*abs2.(ψ).*ψ
-m = sum(conj.(ψ).*Lψ) |> real
+Lφ = -(∂²*φ+φ*∂²')/2+V.*φ+C/2h*abs2.(φ).*φ
+m = sum(conj.(φ).*Lφ) |> real
 
 jldopen("moat.jld2", "w") do file
     file["C"] = C
@@ -116,7 +91,7 @@ jldopen("moat.jld2", "w") do file
     file["source"] = source
     j = 1
     t = 0.0
-    q = ψ
+    q = φ
     file["t0"] = t
     file["psi0"] = q
     while t ≤ T

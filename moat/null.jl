@@ -1,6 +1,6 @@
-# GPE dynamics for a harmonic trap with a moat, adiabatic damping version
+# dummy run with a harmonic trap and static condensate
 
-source = open(@__FILE__) do f
+source = open("null.jl") do f
     read(f, String)
 end
 
@@ -10,11 +10,6 @@ T = 20		# integration time
 l = 0.15		# time step to save psi
 C = 10_000.0
 Ω = 0.0
-R = 1.7
-# w = 0.1
-w = 0.2	# double moat width
-# ω = -3.0
-ω = 0.0
 
 h = 0.05
 N = 150
@@ -31,8 +26,6 @@ function ab(rvac, bord)
     out
 end
 
-mt = @. exp(-(r-R)^2/2/w^2)
-
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
 function op(stencil)
@@ -42,8 +35,8 @@ function op(stencil)
 end
 
 # Hard zero boundary conditions.
-∂ = (1/h).*op([0, -1/2, 0, 1/2, 0])
-∂² = (1/h^2).*op(Float64[0, 0, 1, -2, 1, 0, 0])
+∂ = (1/h).*op([-1/60, 3/20, -3/4, 0, 3/4, -3/20, 1/60])
+∂² = (1/h^2).*op([1/90, -3/20, 3/2, -49/18, 3/2, -3/20, 1/90])
 
 # Minimise the energy 
 #
@@ -65,58 +58,28 @@ V = r² + 100*ab(3, 0.2)
 fill!(φ,1);
 result = optimize(E, grdt!, φ[:],
      GradientDescent(manifold=Sphere()),
-     Optim.Options(iterations=3, g_tol=1e-6, allow_f_increases=true)
+     Optim.Options(iterations=1000, g_tol=1e-6, allow_f_increases=true)
 );
 φ = togrid(result.minimizer);
 
-V += 20*R^2*mt
-W = V .+ ω*(r.>R)
-
-# relax soliton phase to moat vortex
-
-phs = z .+ 0.7
-@. phs /= abs(phs)
-φ[@. abs(z) < R] .*= phs[@. abs(z) < R]
-
-# relax high momenta
-
-a = 0.01	# width of Gaussian to convolve
-φ1 = similar(φ);
-for j = 1:N
-    for k = 1:N
-        φ1[j,k] = sum(@. φ*exp(-abs2(z-z[j,k])/2/a))
-    end
-end
-
-# relax moat density to residual where vortex disappears
-ψ = copy(φ1);
-result = optimize(E, grdt!, ψ[:],
-     GradientDescent(manifold=Sphere()),
-     Optim.Options(iterations=100, g_tol=0.02, allow_f_increases=true)
- );
-ψ = togrid(result.minimizer);
-
 ramp(t) = t > 1 ? 0.0 : 0.5 + 0.5tanh(1/3t + 1/3(t-1))
 
-# Offset W in place of V, absorb KE
-f(ψ,_,t) = -(1im+0.01ramp(t))*(-(∂²*ψ+ψ*∂²')/2+(W.-m-1im*(3.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)
+# absorb KE
+f(ψ,_,t) = -(1im+0.01ramp(t))*(-(∂²*ψ+ψ*∂²')/2+(V.-m-1im*(10.0ab(3.3, 0.1))).*ψ+C/h*abs2.(ψ).*ψ)
 
 # Solve the GPE
 
-Lψ = -(∂²*ψ+ψ*∂²')/2+V.*ψ+C/2h*abs2.(ψ).*ψ
-m = sum(conj.(ψ).*Lψ) |> real
+Lφ = -(∂²*φ+φ*∂²')/2+V.*φ+C/2h*abs2.(φ).*φ
+m = sum(conj.(φ).*Lφ) |> real
 
 jldopen("moat.jld2", "w") do file
     file["C"] = C
     file["W"] = Ω
-    file["R"] = R
     file["y"] = y
-    file["w"] = w
-    file["ww"] = ω
     file["source"] = source
     j = 1
     t = 0.0
-    q = ψ
+    q = φ
     file["t0"] = t
     file["psi0"] = q
     while t ≤ T
