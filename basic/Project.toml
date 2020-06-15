@@ -1,0 +1,6 @@
+[deps]
+BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"

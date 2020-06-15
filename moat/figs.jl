@@ -3,7 +3,7 @@
 using LinearAlgebra, BandedMatrices, Optim, DifferentialEquations, Statistics, JLD2
 using Plots, ComplexPhasePortrait
 
-results = "shell/GG.jld2"
+results = "E.jld2"
 
 # @load results C W R y w steps source
 @load results C W y steps source
@@ -192,19 +192,18 @@ function show_step(j)
     plot(P1, P2, P3, layout = @layout[a b c])
 end
 
-function pcis(t)
+function pcis(k)
     φ = zeros(N, N)
     q1, t1 = load_moat(0)
     Q1 = fudge(q1)
     t2 = NaN
-    for j = 1:steps
+    for j = 1:k
         q2, t2 = load_moat(j)
         Q2 = fudge(q2)
         @. φ += conj(Q2)*Q1 |> imag
-        (t2 > t || t2 ≈ t) && break
         Q1 = Q2
     end
-    φ, t2
+    φ
 end
 
 function diagnostic(s="")
@@ -227,14 +226,18 @@ function show_field(j)
     ff, tt = berry_phases()
     nn = [norm(load_moat(j) |> first) for j = 1:steps]
     P1 = scatter(tt, nn, ms=1, mc=:black, msw=0, leg=:none)
-    scatter!(tt[j:j], nn[j:j], ms=1, mc=:red, msw=0, leg=:none)
+    scatter!(tt[j:j], nn[j:j], ms=2, mc=:red, msw=0, leg=:none)
     ylabel!("norm(psi)")
     F = cumsum(ff)
     P2 = scatter(tt, F, ms=1, mc=:black, msw=0, leg=:none)
-    scatter!(tt[j:j], F[j:j], ms=1, mc=:red, msw=0, leg=:none)
+    scatter!(tt[j:j], F[j:j], ms=2, mc=:red, msw=0, leg=:none)
     xlabel!("t")
     ylabel!("berry phase")
+    P3 = berry_step(j) |> zplot
+    title!("step")
+    P4 = pcis(j) |> zplot
+    title!("cumulative")
     L = plot(P1, P2, layout = @layout [a; b])
     q = load_moat(j) |> first
-    plot(L, zplot(q), argplot(q), show_slice(j), layout = @layout [a [b; c] d])
+    plot(L, zplot(q), argplot(q), show_slice(j), P3, P4, layout = @layout [a [b; c] d [e; f]])
 end
