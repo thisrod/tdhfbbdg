@@ -5,22 +5,24 @@ using Plots, ComplexPhasePortrait
 
 Ea = √2
 
-N = 20
+N = 80
 
     h = 0.6/√N
+    N = N ÷ 2
+    h *= 2
 
     y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
     r = abs.(z)
     V = r² = abs2.(z)
     
-    # Exact solution
+    # Exact solution on infinite domain
     
     φa = @. exp(-r²/√2)
     φa ./= norm(φa)
     
     # starting point for gradient descent
-    φs = @. exp(-r²/0.2^2)
-    φs ./= norm(φs)
+    φ = @. cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h)
+    φ ./= norm(φ)
     
     # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
     
@@ -44,21 +46,14 @@ N = 20
     grdt!(buf,xy) = copyto!(buf, 2*H(togrid(xy))[:])
     togrid(xy) = reshape(xy, size(z))
     
-    φ = similar(z);
-    fill!(φ,1)
-    result = optimize(E, grdt!, Complex.(φa)[:],
-         GradientDescent(manifold=Sphere()),
+    result = optimize(E, grdt!, Complex.(φ)[:],
+         ConjugateGradient(manifold=Sphere()),
          Optim.Options(iterations=10_000, g_tol=1e-6, allow_f_increases=true)
     )
     init = togrid(result.minimizer)
-    result = optimize(E, grdt!, result.minimizer,
-         GradientDescent(manifold=Sphere()),
-         Optim.Options(iterations=10_000, g_tol=1e-9, allow_f_increases=true)
-    )
-    ψ₀ = togrid(result.minimizer)
     
-    P = ODEProblem((ψ,_,_)->-1im*H(ψ), init, (0.0,0.1))
-    S = solve(P)
+    P = ODEProblem((ψ,_,_)->-1im*H(ψ), init, (0.0,1.0))
+    S = solve(P, RK4())
 
 function crds(u)
     N = size(u,1)
@@ -70,10 +65,6 @@ zplot(ψ) = plot(crds(ψ), crds(ψ), portrait(reverse(ψ,dims=1)).*abs2.(ψ)/max
 zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
 argplot(ψ) = plot(crds(ψ), crds(ψ), portrait(reverse(ψ,dims=1)), aspect_ratio=1)
 argplot(ψ::Matrix{<:Real}) = argplot(Complex.(ψ))
-
-# @load "basic.jld2" Es φas S0 S1 S3 S10
-
-er(u) = u - dot(ψ₀, u)*ψ₀
 
 # scatter(S.t, [norm(er(S[j])) for j = eachindex(S)], leg=:none)
 # zplot(H(S[1]) |> er)
@@ -90,10 +81,35 @@ end
 
 Hmat = real.(Hmat)
 ew, ev = eigen(Hmat)
-parasite = ev[:,end-3] |> togrid
+
+ψ₀ = togrid(ev[:,1])
+er(u) = u - dot(ψ₀, u)*ψ₀
 
 # zplot(parasite)
 ixs = eachindex(ew)[abs.(ev' * S[1][:]) .> 1e-9]
 # ev[:,ixs]' * S[1][:]
 
 cpts = ev'*φa[:]
+
+function labplot(u)
+    cs = abs.(ev'*u[:])
+    ixs = cs .> 1e-20
+    scatter(ew[ixs], cs[ixs], mc=:black, msw=0, ms=3, yscale=:log10, leg=:none)
+end
+
+function labplot!(u)
+    cs = abs.(ev'*u[:])
+    ixs = cs .> 1e-20
+    scatter!(ew[ixs], cs[ixs], mc=:red, msw=0, ms=3, yscale=:log10, leg=:none)
+end
+
+function diagplot(j)
+    P1 = scatter(S.t, [norm(er(S[j])) for j = eachindex(S)],
+        ms = 3, mc=:black, msw=0, leg=:none)
+    scatter!(S.t[j:j], [norm(er(S[j]))],
+        ms = 4, mc=:red, msw=0, leg=:none)
+    P2 = zplot(er(S[j]))
+    P3 = labplot(S[j])
+    labplot!(S[1])
+    plot(P1, P2, P3, layout=@layout [a b; c])
+end
