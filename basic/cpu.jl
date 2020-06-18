@@ -5,46 +5,63 @@ using Plots, ComplexPhasePortrait
 
 Ea = √2
 
-# C = 10.0
-C = 10_000.0
+# C = 1.0
+# N = 60
+# dts = 10 .^ (-8:-0.5:-16)	# residual
+# ats = 10 .^ (-2:-0.25:-3.5)	# time step
+# sfile = "cvg_0.jld2"
 
+C = 10.0
 N = 60
+dts = 10 .^ (-8:-0.5:-15)	# residual
+ats = 10 .^ (-2:-0.25:-3.75)	# time step
+sfile = "cvg_1.jld2"
+
+# C = 100.0
+# N = 60
+# dts = 10 .^ (-8:-0.5:-14)	# residual
+# ats = 10 .^ (-2:-0.25:-4)	# time step
+# sfile = "cvg_2.jld2"
+
+# C = 10_000.0
+# N = 60
+# dts = 10 .^ (-8:-0.5:-12)	# residual
+# ats = 10 .^ (-2:-0.25:-5)	# time step
+# sfile = "cvg_4.jld2"
+
 h = sqrt(√2*π/N)
 
 # remember SHO, E = T/2 + V/2
 Tmax = π^2/h^2
 Vmax = N^2*h^2/2
 
-    y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
-    r = abs.(z)
-    V = r² = abs2.(z)
-    
-    # Exact solution on infinite domain
-    
-    φa = @. exp(-r²/√2)
-    φa ./= norm(φa)
-    
-    # starting point for gradient descent
-    φ = @. cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h)
-    φ ./= norm(φ)
-    
-    # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
-    
-    function op(stencil)
-        mid = (length(stencil)+1)÷2
-        diags = [i-mid=>fill(stencil[i],N-abs(i-mid)) for i = keys(stencil)]
-        BandedMatrix(Tuple(diags), (N,N))
-    end
-    
-    # Hard zero boundary conditions.
-    ∂² = (1/h^2).*op(Float64[1, -2, 1])
-    
-    # Minimise the energy 
-    #
-    # E(ψ) = -∫ψ*∇²ψ/2 + V|ψ|²
-    #
-    # The GPE functional L(ψ) is the gradient required by Optim.
-    
+y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
+r = abs.(z)
+V = r² = abs2.(z)
+
+# Exact solution on infinite domain
+
+φa = @. exp(-r²/√2)
+φa ./= norm(φa)
+
+
+# Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
+
+function op(stencil)
+    mid = (length(stencil)+1)÷2
+    diags = [i-mid=>fill(stencil[i],N-abs(i-mid)) for i = keys(stencil)]
+    BandedMatrix(Tuple(diags), (N,N))
+end
+
+# Hard zero boundary conditions.
+∂² = (1/h^2).*op(Float64[1, -2, 1])
+
+# Minimise the energy 
+#
+# E(ψ) = -∫ψ*∇²ψ/2 + V|ψ|²
+#
+# The GPE functional L(ψ) is the gradient required by Optim.
+
 T(ψ) = -(∂²*ψ+ψ*∂²')/2
 U(ψ) = C/h*abs2.(ψ)
 L(ψ) = T(ψ)+(V+U(ψ)).*ψ
@@ -53,61 +70,59 @@ E(xy) = sum(conj.(togrid(xy)).*H(togrid(xy))) |> real
 grdt!(buf,xy) = copyto!(buf, 2*L(togrid(xy))[:])
 togrid(xy) = reshape(xy, size(z))
     
-    result = optimize(E, grdt!, Complex.(φ)[:],
+tix(S,t) = argmin(abs.(S.t .- t))
+
+# starting point for relaxation
+φ = @. cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
+φ ./= norm(φ)
+
+dqs = []	# can't find ers until we have ψ₀
+dsteps = Float64[]
+rrr = []
+for r = dts
+    push!(rrr, r)
+    result = optimize(E, grdt!, φ[:],
          ConjugateGradient(manifold=Sphere()),
-         Optim.Options(iterations=10_000, g_tol=1e-10, allow_f_increases=true)
-    )
-    init = togrid(result.minimizer)
+         Optim.Options(iterations=10_000, g_tol=r, allow_f_increases=true)
+    );
+    φ .= result.minimizer |> togrid
+    push!(dsteps, result.iterations)
     
-    P = ODEProblem((ψ,_,_)->-1im*L(ψ), init, (0.0,1.0))
-
-# scatter(ats,aers, xscale=:log10, yscale=:log10, leg=:none)
-
-function crds(u)
-    N = size(u,1)
-    h = 0.6/√N
-    h/2*(1-N:2:N-1)
+    P = ODEProblem((ψ,_,_)->-1im*L(ψ), φ, (0.0,0.75))
+    S = solve(P, RK4(), adaptive=false, dt=minimum(ats), saveat=[], save_everystep=false)
+    push!(dqs, S[end])
 end
-   
-zplot(ψ) = plot(x[:], y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
-zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
-argplot(ψ) = plot(x[:], y, portrait(reverse(ψ,dims=1)), aspect_ratio=1)
-argplot(ψ::Matrix{<:Real}) = argplot(Complex.(ψ))
+dsteps = cumsum(dsteps)
+P = ODEProblem((ψ,_,_)->-1im*L(ψ), φ, (0.0,0.75))
 
+# effective Hamiltonian including ground state repulsion
 
 u = similar(z)
 Hmat = similar(z, N^2, N^2)
 for j = 1:N^2
     u .= 0
     u[j] = 1
-    Hmat[:,j] = (T(u)+(V+U(init)).*u)[:]
+    Hmat[:,j] = (T(u)+(V+U(φ)).*u)[:]
 end
-
 Hmat = real.(Hmat)
 ew, ev = eigen(Hmat)
-
 ψ₀ = togrid(ev[:,1])
+
 er(u) = u - dot(ψ₀, u)*ψ₀
 
-cpts = ev'*φa[:]
-
-tix(S,t) = argmin(abs.(S.t .- t))
+ders = [q |> er |> norm for q in dqs]
     
-ats = 10 .^ (-8:-0.5:-12)
-rts = 10 .^ (-8:-0.5:-12)
 aers = Float64[]
-rers = Float64[]
 for a = ats
-    T = solve(P, RK4(), abstol=a, reltol=minimum(rts))
-    q = T[tix(T,0.75)]
-    push!(aers, q - dot(ψ₀, q)*ψ₀ |> norm)
+    T = solve(P, RK4(), adaptive=false, dt=a, saveat=[], save_everystep=false)
+    push!(aers, T[end] |> er |> norm)
 end
-for r = rts
-    T = solve(P, RK4(), abstol=minimum(ats), reltol=r)
-    q = T[tix(T,0.75)]
-    push!(rers, q - dot(ψ₀, q)*ψ₀ |> norm)
-end
-S = solve(P, RK4(), abstol=minimum(ats), reltol=minimum(rts))
+
+asteps = 1 ./ ats
+asteps ./= maximum(asteps)
+dsteps ./= maximum(dsteps)
+
+S = solve(P, RK4(), adaptive=false, dt=minimum(ats), saveat=0.05)
 tix(t) = tix(S,t)
 
 function labplot(u)
@@ -136,3 +151,28 @@ function diagplot(j)
     labplot!(S[1])
     plot(P1, P2, P3, layout=@layout [a b; c])
 end
+   
+zplot(ψ) = plot(x[:], y, portrait(reverse(ψ,dims=1)).*abs2.(ψ)/maximum(abs2.(ψ)), aspect_ratio=1)
+zplot(ψ::Matrix{<:Real}) = zplot(Complex.(ψ))
+argplot(ψ) = plot(x[:], y, portrait(reverse(ψ,dims=1)), aspect_ratio=1)
+argplot(ψ::Matrix{<:Real}) = argplot(Complex.(ψ))
+
+
+function convplot()
+    scatter(asteps,aers, xscale=:log10, yscale=:log10,
+        label="time step", leg=:bottomleft)
+    scatter!(dsteps,ders, label="residual")
+    scatter!([1.0], ders[end:end], mc=:black, label="best")
+    xlabel!("relative work")
+    ylabel!("error component")
+    title!("Convergence at t = 0.75")
+end
+
+T0 = dot(ψ₀, T(ψ₀))
+U0 = dot(ψ₀, U(ψ₀).*ψ₀)
+V0 = dot(ψ₀, V.*ψ₀)
+
+St = S.t
+Su = S.u
+
+@save sfile C N ats asteps aers dts dsteps ders T0 U0 V0 St Su
