@@ -44,7 +44,6 @@ V = r² = abs2.(z)
 φa = @. exp(-r²/√2)
 φa ./= norm(φa)
 
-
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
 function op(stencil)
@@ -78,9 +77,7 @@ tix(S,t) = argmin(abs.(S.t .- t))
 
 dqs = []	# can't find ers until we have ψ₀
 dsteps = Float64[]
-rrr = []
 for r = dts
-    push!(rrr, r)
     result = optimize(E, grdt!, φ[:],
          ConjugateGradient(manifold=Sphere()),
          Optim.Options(iterations=10_000, g_tol=r, allow_f_increases=true)
