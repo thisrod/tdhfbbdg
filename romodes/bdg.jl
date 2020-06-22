@@ -5,8 +5,9 @@ using Plots, ComplexPhasePortrait, Printf
 
 C = 3000
 N = 60
+# N = 80
 Ω = 0.28
-dts = 10 .^ (-5:-0.5:-7.5)	# residual
+dts = 10 .^ (-5:-0.5:-9.0)	# residual
 ats = 10 .^ (-2:-0.25:-4)	# time step
 sfile = "orb.jld2"
 
@@ -47,36 +48,37 @@ togrid(xy) = reshape(xy, size(z))
 φ .*= (z.-r₀)
 φ ./= norm(φ)
 
-dSs = []
-dsteps = Float64[]
-"Starting the real work" |> println
-flush(stdout)
-for r = dts
+# dSs = []
+# dsteps = Float64[]
+# "Starting the real work" |> println
+# flush(stdout)
+# for r = dts
     result = optimize(E, grdt!, φ[:],
          ConjugateGradient(manifold=Sphere()),
          Optim.Options(iterations=10_000, g_tol=r, allow_f_increases=true)
     );
     φ .= result.minimizer |> togrid
-    push!(dsteps, result.iterations)
-    "Relaxed to residual $(r) in $(result.iterations) steps" |> print
-    flush(stdout)
-    
-    P = ODEProblem((ψ,_,_)->-1im*K(ψ), φ, (0.0,0.75))
-    S = solve(P, RK4(), adaptive=false, dt=minimum(ats), saveat=0.05)
-    push!(dSs, S)
-    " and solved dynamics" |> println
-    flush(stdout)
-end
-dsteps = cumsum(dsteps)
-P = ODEProblem((ψ,_,_)->-1im*K(ψ), φ, (0.0,0.75))
-
-aSs = []
-for a = ats
-    S = solve(P, RK4(), adaptive=false, dt=a, saveat=0.05)
-    push!(aSs, S)
-    "Solved dynamics with time step $(a)" |> println
-    flush(stdout)
-end
+#     push!(dsteps, result.iterations)
+#     "Relaxed to residual $(r) in $(result.iterations) steps" |> print
+#     flush(stdout)
+#     
+#     μlab = dot(gs, K(gs)) |> real
+#     P = ODEProblem((ψ,_,_)->-1im*(K(ψ)-μlab*ψ), φ, (0.0,0.75))
+#     S = solve(P, RK4(), adaptive=false, dt=minimum(ats), saveat=0.05)
+#     push!(dSs, S)
+#     " and solved dynamics" |> println
+#     flush(stdout)
+# end
+# dsteps = cumsum(dsteps)
+# P = ODEProblem((ψ,_,_)->-1im*K(ψ), φ, (0.0,0.75))
+# 
+# aSs = []
+# for a = ats
+#     S = solve(P, RK4(), adaptive=false, dt=a, saveat=0.05)
+#     push!(aSs, S)
+#     "Solved dynamics with time step $(a)" |> println
+#     flush(stdout)
+# end
 
 struct GPEMatrix <: AbstractMatrix{Complex{Float64}}
     ψ::Matrix{Complex{Float64}}
@@ -99,12 +101,18 @@ function er(u, ev)
     u - dot(u0,u)*u0
 end
 
+function ner(u)
+    _, ev = scstrm(u)
+    norm(er(u, ev))
+end
+
 function scstrm(u)
     # expand u over self-consistent eigenstates in rotating frame
-    ews,evs = eigs(GPEMatrix(q); nev=30, which=:SR)
-    ewl,evl = eigs(GPEMatrix(q); nev=30, which=:LR)
-    ew = [ews; ewl]
-    ev = [evs evl]
+    ew, ev = eigs(GPEMatrix(u); nev=30, which=:SR)
+    # ewl,evl = eigs(GPEMatrix(u); nev=30, which=:LR)
+    # ew = [ews; ewl]
+    # ev = [evs evl]
+    ew .-= dot(u,L(u))
     @assert maximum(abs.(imag.(ew))) < 1e-10
     ew = real.(ew)
     ew, ev
@@ -116,12 +124,30 @@ function labplot!(P, u, ew, ev, clr=:black)
     scatter!(P, ew[ixs], cs[ixs], mc=clr, msw=0, ms=3, yscale=:log10, leg=:none)
 end
 
-function diagplot(S, j)
+struct DiagPlot
+    # cache spectra
+    S
+    eww
+    evv
+    function DiagPlot(S)
+        eww = []
+        evv = []
+        for j = eachindex(S)
+            ew, ev = scstrm(S[j])
+            push!(eww, ew)
+            push!(evv, ev)
+        end
+        new(S, eww, evv)
+    end
+end
+
+function (D::DiagPlot)(j::Int)
     P1 = plot()
     P3 = plot()
     P2 = nothing
-    for k = 1:length(S)
-        ew, ev = scstrm(S[j])
+    for k = 1:length(D.S)
+        ew = D.eww[k]
+        ev = D.evv[k]
         e = er(S[k], ev)
         scatter!(P1, S.t[k:k], [norm(e)],
             ms = 3, mc=:black, msw=0, leg=:none)
@@ -131,7 +157,28 @@ function diagplot(S, j)
             P2 = zplot(e)
             labplot!(P3, S[k], ew, ev, :red)
         elseif k == 1
-            labplot!(P3, S[j], ew, ev, :black)
+            labplot!(P3, S[k], ew, ev, :black)
+        end
+    end
+    plot(P1, P2, P3, layout=@layout [a b; c])
+end
+
+function diagplot(S, j)
+    P1 = plot()
+    P3 = plot()
+    P2 = nothing
+    for k = 1:length(S)
+        ew, ev = scstrm(S[k])
+        e = er(S[k], ev)
+        scatter!(P1, S.t[k:k], [norm(e)],
+            ms = 3, mc=:black, msw=0, leg=:none)
+        if k == j
+            scatter!(P1, S.t[k:k], [norm(e)],
+                ms = 4, mc=:red, msw=0, leg=:none)
+            P2 = zplot(e)
+            labplot!(P3, S[k], ew, ev, :red)
+        elseif k == 1
+            labplot!(P3, S[k], ew, ev, :black)
         end
     end
     plot(P1, P2, P3, layout=@layout [a b; c])
