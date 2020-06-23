@@ -48,6 +48,8 @@ togrid(xy) = reshape(xy, size(z))
 φ .*= (z.-r₀)
 φ ./= norm(φ)
 
+r = dts[1]
+
 # dSs = []
 # dsteps = Float64[]
 # "Starting the real work" |> println
@@ -62,7 +64,7 @@ togrid(xy) = reshape(xy, size(z))
 #     "Relaxed to residual $(r) in $(result.iterations) steps" |> print
 #     flush(stdout)
 #     
-#     μlab = dot(gs, K(gs)) |> real
+#     μlab = dot(φ, K(φ)) |> real
 #     P = ODEProblem((ψ,_,_)->-1im*(K(ψ)-μlab*ψ), φ, (0.0,0.75))
 #     S = solve(P, RK4(), adaptive=false, dt=minimum(ats), saveat=0.05)
 #     push!(dSs, S)
@@ -139,6 +141,12 @@ struct DiagPlot
         end
         new(S, eww, evv)
     end
+end
+
+function labplot!(P, u, D::DiagPlot, j::Integer, clr=:black)
+    cs = abs.(D.evv[j]'*u[:])
+    ixs = cs .> 1e-20
+    scatter!(P, D.eww[j][ixs], cs[ixs], mc=clr, msw=0, ms=3, yscale=:log10, leg=:none)
 end
 
 function (D::DiagPlot)(j::Int)
