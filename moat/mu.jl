@@ -24,7 +24,7 @@ Ea = √2
 # sfile = "cvg_2.jld2"
 
 C = 10_000.0
-N = 100
+N = 60
 dts = 10 ^ -11.5	# residual
 ats = 10 ^ -4.5	# time step
 
@@ -83,7 +83,7 @@ result = optimize(E, grdt!, φ[:],
 
 # Set chemical potential to zero outside the moat
 μL = dot(φ, L(φ)) |> real
-P = ODEProblem((ψ,_,_)->-1im*L(ψ), φ, (0.0,5.0))
+P = ODEProblem((ψ,_,_)->-1im*L(ψ), φ, (0.0,0.75))
 
 # effective Hamiltonian including ground state repulsion
 
@@ -104,7 +104,7 @@ tix(t) = tix(S,t)
 
 t(x) = (tanh(x)+1)/2
 @. V += μoff*t((R+r)/w)*t((R-r)/w)
-S = solve(P, RK4(), adaptive=false, dt=minimum(ats), saveat=0.5)
+S = solve(P, RK4(), adaptive=false, dt=minimum(ats), saveat=0.1)
 
 function labplot(u)
     cs = abs.(ev'*u[:])
@@ -160,3 +160,6 @@ end
 
 # scatter(y, slice(W), msw=0, mc=:black, label="V")
 # scatter!(y, 750*slice(real.(φ)).+E0, msw=0, mc=:gray, label="q")
+
+Nin(u) = sum(abs2.(u[r .< R]))
+Nout(u) = sum(abs2.(u[r .≥ R]))
