@@ -55,7 +55,8 @@ function unroll(θ)
 end
 
 # Plots and portraits are a bit wierd with pixel arrays
-implot(x,y,image) = plot(x, y, image, yflip=false, aspect_ratio=1)
+implot(x,y,image) = plot(x, y, image,
+    yflip=false, aspect_ratio=1, framestyle=:box, tick_direction=:out)
 implot(image) = implot(y,y,image)
 saneportrait(u) = reverse(portrait(u), dims=1)
 zplot(u) = implot(saneportrait(u).*abs2.(u)/maximum(abs2,u))
