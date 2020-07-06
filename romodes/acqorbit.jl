@@ -13,7 +13,8 @@ l = 20.0	# maximum domain size
 dts = 10 .^ (-5:-0.5:-9.0)	# residual
 Ωs = [0.0, 0.6]
 
-r₀ = 1.7		# offset of imprinted vortex
+# r₀ = 1.7
+r₀ = 2.5		# offset of imprinted vortex
 
 h = min(l/(N+1), sqrt(√2*π/N))
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y

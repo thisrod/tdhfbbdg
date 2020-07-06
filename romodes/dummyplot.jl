@@ -1,4 +1,4 @@
-using Plots, ComplexPhasePortrait, JLD2
+using Plots, ComplexPhasePortrait, JLD2, Plots.PlotMeasures
 
 # Plots and portraits are a bit wierd with pixel arrays
 implot(x,y,image) = plot(x, y, image,
@@ -24,34 +24,38 @@ xlab = "x (SHO length)"
 ylab = "y (SHO length)"
 
 function lbl!(s)
-    annotate!(-10,10, Plots.text("($s)", :left, :top, :white))
+    annotate!(-5, 5, Plots.text("($s)", :left, :top, :white))
     savefig(P, "../figs/resp200702$(s).pdf")
 end
 
-popts = (xlims=(-10,10), ylims=(-10,10), fontfamily="Latin Modern Sans")
+popts = (xlims=(-5,5), ylims=(-5,5),
+    fontfamily="Latin Modern Sans")
 
-P = plot(zplot(q2), xshowaxis=false, ylabel=ylab, size=(303,300); popts...)
+P = plot(zplot(q2), xshowaxis=false,
+    size=(303,300), bottom_margin=-6mm, left_margin=-3mm; popts...)
 plot!(real.(zz1), imag.(zz1), lc=:white, leg=:none)
+scatter!(real.(zz1[1:1]), imag.(zz1[1:1]), ms=5, mc=:white, msw=0)
 lbl!('a')
 
-P = plot(zplot(q1), xshowaxis=false, yshowaxis=false, xlabel=" ", size=(300,292); popts...)
+P = plot(zplot(q1), xshowaxis=false, yshowaxis=false,
+    size=(300,292), bottom_margin=-6mm, left_margin=-6mm; popts...)
 plot!(real.(zz2), imag.(zz2), lc=:white, leg=:none)
+scatter!(real.(zz2[1:1]), imag.(zz2[1:1]), ms=5, mc=:white, msw=0)
 lbl!('b')
 
-P = plot(zplot(bp2), xlabel=xlab, ylabel=ylab, size=(300,292); popts...)
+P = plot(zplot(bp2), size=(300,292), bottom_margin=-3mm, left_margin=-3mm; popts...)
 lbl!('c')
 
-P = plot(zplot(bp1), yshowaxis=false, xlabel=xlab, size=(303,300); popts...)
+P = plot(zplot(bp1), yshowaxis=false, size=(303,300), bottom_margin=-3mm, left_margin=-6mm; popts...)
 lbl!('d')
 
-P = scatter(S1t, ap1, label="GPE Berry",
+P = scatter(S1t, ap1./2π, label="GPE Berry",
     leg=:topleft, size=(600,292), framestyle=:box,
-    xlabel="t (1/w_trap)", ylabel="gamma (2piN)",
-    fontfamily="Latin Modern Sans")
-scatter!(S1t, wp1, label="GPE Wu")
-scatter!(S1t, -ap2, label="Imp. Berry")
-scatter!(S1t, wp2, label="Imp. Wu")
+    fontfamily="Latin Modern Sans", ms=3)
+scatter!(S1t, wp1./2π, label="GPE Wu", ms=3)
+scatter!(S1t, -ap2./2π, label="Imp. Berry", ms=3)
+scatter!(S1t, wp2./2π, label="Imp. Wu", ms=3)
 annotate!(xlims()[1], ylims()[end], Plots.text("(e)", :left, :top, :black))
-xlabel!("t (1/w_trap)")
-ylabel!("gamma (2piN)")
 savefig(P, "../figs/resp200702e.pdf")
+
+`xetex figone.tex`

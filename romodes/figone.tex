@@ -1,23 +1,28 @@
 \parindent=0pt
 \nopagenumbers
+\input graphicx
 
 \font\ss="Latin Modern Sans" at 10pt
-
 \ss
+
 \newdimen\figwd
-\def\\#1#2{\hbox to #1{\hfil#2\hfil}}
 \figwd=0.4\hsize
-\halign{#\hfil&\hfil#\cr
-\\\figwd{\quad Imprinted}&\\\figwd{ Dynamic}\cr
-\noalign{\medskip}
-\XeTeXpdffile ../figs/resp200702a.pdf width \figwd &
+\newdimen\lbloff
+\lbloff=6em
+\def\\#1#2{\hbox to #1{\hfil#2\hfil}}
+
+\halign{#&#\cr
+\hbox{\rotatebox[origin=l]{90}{\hskip\lbloff $y$ (SHO length)}%
+\XeTeXpdffile ../figs/resp200702a.pdf width \figwd }\vrule&\vrule
+% \includegraphics{resp200702a.pdf}}\vrule&\vrule
 \XeTeXpdffile ../figs/resp200702b.pdf width \figwd \cr
-\noalign{\vskip-0.5em\\{0.85\hsize}{Order parameter at $t=5$}\bigskip}
-\XeTeXpdffile ../figs/resp200702c.pdf width \figwd &
+\hbox{\rotatebox[origin=l]{90}{\hskip\lbloff $y$ (SHO length)}%
+\XeTeXpdffile ../figs/resp200702c.pdf width \figwd }&
 \XeTeXpdffile ../figs/resp200702d.pdf width \figwd \cr
-\noalign{\vskip-0.5em\\{0.85\hsize}{Geometric phase density from $t=0$ to 5}\bigskip}
-\multispan2\XeTeXpdffile ../figs/resp200702e.pdf width 0.8\hsize \cr
-\noalign{\vskip-0.5em\\{0.85\hsize}{Geometric phase accumulation}\bigskip}
+\hfil $x$ (SHO length)\hfil&\hfil $x$ (SHO length)\hfil\cr
+\multispan2\hbox{\rotatebox[origin=l]{90}{\hskip6em$\gamma\ (2\pi N_{in})$}%
+\XeTeXpdffile ../figs/resp200702e.pdf width 0.8\hsize }\cr
+\multispan2\hfil $t\ (1/\omega_{\rm trap})$\hfil\cr
 }
 
 \bye

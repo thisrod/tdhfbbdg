@@ -38,8 +38,8 @@ grdt!(buf,ψ) = copyto!(buf, 2*L(ψ,Ω))
 togrid(xy) = reshape(xy, size(z))
 
 μlab = dot(φ, K(φ)) |> real
-# P = ODEProblem((ψ,_,_)->-1im*(K(ψ)-μlab*ψ), φ, (0.0,30.0))
-# S1 = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.5)
+P = ODEProblem((ψ,_,_)->-1im*(K(ψ)-μlab*ψ), φ, (0.0,30.0))
+S1 = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.5)
 
 # find vortex-free centrifugal state
 ψ = @. cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
@@ -90,4 +90,4 @@ ap1, wp1 = bphase(S1q, S1t)
 ap2, wp2 = bphase([ivort(angle(zz1[j])) for j = eachindex(S1)], S1t)
 
 
-@save "ss.jld2" S1t S1q zz1 zz2 q1 q2 bp1 bp2 ap1 ap2 wp1 wp2
+@save "st.jld2" Ω S1t S1q zz1 zz2 q1 q2 bp1 bp2 ap1 ap2 wp1 wp2
