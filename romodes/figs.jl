@@ -1,6 +1,14 @@
 # plotting functions
 
-using Plots, ComplexPhasePortrait, Printf
+using Plots, ComplexPhasePortrait
+
+"ComplexPhasePortrait, but with real sign instead of phase"
+function sense_portrait(xs)
+    mag = maximum(abs, xs)
+    C = cgrad([:cyan, :white, :red])
+    # TODO stability at |x| ≈ mag
+    xs .|> (x -> C[(x+mag)/2mag])
+end
 
 function poles(u)
     rs = (-1:1)' .+ 1im*(-1:1)
@@ -13,8 +21,10 @@ function poles(u)
     P, Q
 end
 
-function find_vortex(u)
-    w = poles(u) |> first .|> real
+find_vortex(u) = find_vortex(u, Inf)
+function find_vortex(u, R)
+    w = poles(u) |> first .|> abs
+    @. w *= abs(z) < R
     z[argmax(w)]
 end
 
@@ -25,16 +35,22 @@ end
 
 show_vortex!(u) = show_vortex!(u, :white)
 
-function bphase(S, ts)
+# function bphase(S, ts)
+#     bp = [dot(S[j+1], S[j]) |> imag for j = 1:length(S)-1] |> cumsum
+#     bp = [0; bp]
+#     zs = [find_vortex(S[j]) for j = eachindex(S)]
+#     nin = sum(abs2.(S[1][r .< mean(abs.(zs))]))
+#     P = scatter(ts, bp, label="Berry", leg=:topleft)
+#     scatter!(ts, nin*unroll(angle.(zs).-angle(zs[1])), label="Wu & Haldane")
+#     xlabel!("t")
+#     ylabel!("phi")
+#     title!("Geometric phases by GPE")
+# end
+
+pci(S) = [@. imag(conj(S[j+1])*S[j]) for j = 1:length(S)-1] |> sum
+function bphase(S)
     bp = [dot(S[j+1], S[j]) |> imag for j = 1:length(S)-1] |> cumsum
-    bp = [0; bp]
-    zs = [find_vortex(S[j]) for j = eachindex(S)]
-    nin = sum(abs2.(S[1][r .< mean(abs.(zs))]))
-    P = scatter(ts, bp, label="Berry", leg=:topleft)
-    scatter!(ts, nin*unroll(angle.(zs).-angle(zs[1])), label="Wu & Haldane")
-    xlabel!("t")
-    ylabel!("phi")
-    title!("Geometric phases by GPE")
+    [0; bp]
 end
 
 function unroll(θ)

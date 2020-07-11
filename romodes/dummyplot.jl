@@ -1,4 +1,7 @@
-using Plots, ComplexPhasePortrait, JLD2, Plots.PlotMeasures
+# Process ground state and dynamics data
+
+using Plots, ComplexPhasePortrait, JLD2, LinearAlgebra
+using Statistics: mean
 
 # Plots and portraits are a bit wierd with pixel arrays
 implot(x,y,image) = plot(x, y, image,
@@ -12,50 +15,68 @@ argplot(u::Matrix{<:Real}) = argplot(u .|> Complex)
 
 N = 100
 l = 20.0	# maximum domain size
+J = 11	# snapshots at S[J]
 
 h = min(l/(N+1), sqrt(√2*π/N))
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
+r = abs.(z)
 
 y = [-10, 10]	# Plots.jl pixel offset
 
-@load "ss.jld2" S1t zz1 q1 zz2 q2 bp1 bp2 ap1 ap2 wp1 wp2
+@load "acqorbit.jld2" source Ω φ ψ
+@load "ss.jld2" S1t S1q
 
-xlab = "x (SHO length)"
-ylab = "y (SHO length)"
+include("figs.jl")
 
-function lbl!(s)
-    annotate!(-5, 5, Plots.text("($s)", :left, :top, :white))
-    savefig(P, "../figs/resp200702$(s).pdf")
+zz = [find_vortex(S1q[j], 2.5) for j = eachindex(S1q)]
+R = mean(abs.(zz))
+aa = unroll(@. angle(zz) - angle(zz[1]))
+
+function imprint(θ)
+    # TODO match vortex core radius
+    mask = @. z-R*exp(1im*θ)
+    u = @. ψ*mask/sqrt(0.25^2+abs2(mask))
+    u/norm(u)
 end
 
-popts = (xlims=(-5,5), ylims=(-5,5),
-    fontfamily="Latin Modern Sans")
+function plot_trace(z, col)
+    plot!(real.(z), imag.(z), lc=col, leg=:none)
+    scatter!(real.(z[1:1]), imag.(z[1:1]), ms=5, mc=col, msw=0)
+end
 
-P = plot(zplot(q2), xshowaxis=false,
-    size=(303,300), bottom_margin=-6mm, left_margin=-3mm; popts...)
-plot!(real.(zz1), imag.(zz1), lc=:white, leg=:none)
-scatter!(real.(zz1[1:1]), imag.(zz1[1:1]), ms=5, mc=:white, msw=0)
-lbl!('a')
+# 72 dpi is 1pt pixels
+popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72)
 
-P = plot(zplot(q1), xshowaxis=false, yshowaxis=false,
-    size=(300,292), bottom_margin=-6mm, left_margin=-6mm; popts...)
-plot!(real.(zz2), imag.(zz2), lc=:white, leg=:none)
-scatter!(real.(zz2[1:1]), imag.(zz2[1:1]), ms=5, mc=:white, msw=0)
-lbl!('b')
+PA = plot(zplot(S1q[J]), xshowaxis=false; popts...)
+plot_trace(zz[aa .≤ 2π], :white)
+savefig(PA, "../figs/resp200702a.pdf")
 
-P = plot(zplot(bp2), size=(300,292), bottom_margin=-3mm, left_margin=-3mm; popts...)
-lbl!('c')
+PB = plot(zplot(imprint(angle(zz[J]))), xshowaxis=false, yshowaxis=false; popts...)
+plot_trace(zz[aa .≤ 2π], :white)
+savefig(PB, "../figs/resp200702b.pdf")
 
-P = plot(zplot(bp1), yshowaxis=false, size=(303,300), bottom_margin=-3mm, left_margin=-6mm; popts...)
-lbl!('d')
+PC = plot(pci(S1q[1:J]) |> sense_portrait |> implot,
+    aspect_ratio=1; popts...)
+plot_trace(zz[1:J], :black)
+savefig(PC, "../figs/resp200702c.pdf")
 
-P = scatter(S1t, ap1./2π, label="GPE Berry",
-    leg=:topleft, size=(600,292), framestyle=:box,
-    fontfamily="Latin Modern Sans", ms=3)
-scatter!(S1t, wp1./2π, label="GPE Wu", ms=3)
-scatter!(S1t, -ap2./2π, label="Imp. Berry", ms=3)
-scatter!(S1t, wp2./2π, label="Imp. Wu", ms=3)
-annotate!(xlims()[1], ylims()[end], Plots.text("(e)", :left, :top, :black))
-savefig(P, "../figs/resp200702e.pdf")
+PD = plot(-pci(imprint.(angle.(zz[1:J]))) |> sense_portrait |> implot,
+    aspect_ratio=1, yshowaxis=false; popts...)
+plot_trace(zz[1:J], :black)
+savefig(PD, "../figs/resp200702d.pdf")
 
-`xetex figone.tex`
+nin(u) = sum(abs2.(u[r .< R]))
+
+S1t *= Ω/2π
+PE = scatter(S1t[1:4:end], bphase(S1q[1:4:end])./(2π*nin(φ)), label="GPE Berry",
+    leg=:none, framestyle=:box,
+    fontfamily="Latin Modern Sans", ms=3,
+    size=(200,200), dpi=72)
+plot!(S1t, aa./2π, lw=2, label="Wu")
+scatter!(S1t[1:4:end], -bphase(imprint.(angle.(zz[1:4:end])))./(2π*nin(ψ)), label="Imp. Berry", ms=3)
+plot!([S1t[J], S1t[J]], [ylims()[1], 4], lc=:black, label="snapshots")
+# xticks!(0:2.5:7.5)
+# yticks!(0:5:30)
+savefig(PE, "../figs/resp200702e.pdf")
+
+run(`xetex figone.tex`)

@@ -10,11 +10,13 @@ using Statistics: mean
 C = 3000
 N = 100
 l = 20.0	# maximum domain size
-dts = 10 .^ (-5:-0.5:-9.0)	# residual
+dts = 10 .^ (-5:-0.5:-6.0)	# residual
+# dts = 10 .^ (-5:-0.5:-9.0)	# residual
 Ωs = [0.0, 0.6]
 
 # r₀ = 1.7
-r₀ = 2.5		# offset of imprinted vortex
+# r₀ = 2.5		# offset of imprinted vortex
+r₀ = 3.9
 
 h = min(l/(N+1), sqrt(√2*π/N))
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
@@ -43,13 +45,13 @@ L(ψ,Ω) = T(ψ)+(V+U(ψ)).*ψ-Ω*J(ψ)
 K(ψ) = T(ψ)+(V+U(ψ)).*ψ		# lab frame
 H(ψ,Ω) = T(ψ)+(V+U(ψ)/2).*ψ-Ω*J(ψ)
 E(ψ) = dot(ψ,H(ψ,Ω)) |> real
-grdt!(buf,ψ) = copyto!(buf, 2*L(ψ,Ω))
-togrid(xy) = reshape(xy, size(z))
+
+φ = similar(z)
 
 while true
 
-    φ = @. cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
-    φ .*= (z.-r₀)
+    @. φ = cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
+    @. φ *= (z-r₀)
     φ ./= norm(φ)
     
     Ω = mean(Ωs)
@@ -73,6 +75,22 @@ while true
         end
     end
 
-    @save "acqorbit.jld2" source N h Ωs φ
     0.1 < real(dot(φ, J(φ))) < 0.9  &&  break
 end
+
+Ω = mean(Ωs)
+
+# find vortex-free centrifugal state
+ψ = @. cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
+ψ ./= norm(ψ)
+
+result = optimize(
+    ψ -> dot(ψ,H(ψ,Ω)) |> real,
+    (buf,ψ) -> copyto!(buf, 2*L(ψ,Ω)),
+    ψ,
+    ConjugateGradient(manifold=Sphere()),
+    Optim.Options(iterations=10_000, g_tol=minimum(dts), allow_f_increases=true)
+)
+ψ .= result.minimizer
+
+@save "acqorbit2.jld2" source Ω φ ψ

@@ -13,16 +13,15 @@
 
 \halign{#&#\cr
 \hbox{\rotatebox[origin=l]{90}{\hskip\lbloff $y$ (SHO length)}%
-\XeTeXpdffile ../figs/resp200702a.pdf width \figwd }\vrule&\vrule
-% \includegraphics{resp200702a.pdf}}\vrule&\vrule
-\XeTeXpdffile ../figs/resp200702b.pdf width \figwd \cr
+\vrule\includegraphics[width=0.4\hsize, trim=1mm 10mm 0 3mm, clip=true]{resp200702a.pdf}}\vrule&\vrule
+\includegraphics[width=0.4\hsize, trim=0 10mm  0 3mm, clip=true]{resp200702b.pdf}\vrule\cr
 \hbox{\rotatebox[origin=l]{90}{\hskip\lbloff $y$ (SHO length)}%
-\XeTeXpdffile ../figs/resp200702c.pdf width \figwd }&
-\XeTeXpdffile ../figs/resp200702d.pdf width \figwd \cr
+\includegraphics[width=0.4\hsize, trim=1mm 4mm 0 0, clip=true]{resp200702c.pdf}}&
+\includegraphics[width=0.4\hsize, trim=0 4mm 0 0, clip=true]{resp200702d.pdf}\cr
 \hfil $x$ (SHO length)\hfil&\hfil $x$ (SHO length)\hfil\cr
-\multispan2\hbox{\rotatebox[origin=l]{90}{\hskip6em$\gamma\ (2\pi N_{in})$}%
-\XeTeXpdffile ../figs/resp200702e.pdf width 0.8\hsize }\cr
-\multispan2\hfil $t\ (1/\omega_{\rm trap})$\hfil\cr
+\multispan2\hbox{\rotatebox[origin=l]{90}{\hskip6em$\gamma\ (N_{in})$}%
+\resizebox{0.8\hsize}{!}{\includegraphics{resp200702e.pdf}}}\cr
+\multispan2\hfil $t\ (1/\Omega)$\hfil\cr
 }
 
 \bye
