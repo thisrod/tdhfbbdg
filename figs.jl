@@ -28,9 +28,9 @@ function find_vortex(u, R)
     z[argmax(w)]
 end
 
-function show_vortex!(u, clr)
+function show_vortex!(u, clr=:white)
     v0 = find_vortex(u)
-    scatter!([real(v0)],[imag(v0)],m=:circle, ms=1, mc=clr, msw=0, leg=:none)
+    scatter!([real(v0)],[imag(v0)],m=:circle, ms=2, mc=clr, msw=0, leg=:none)
 end
 
 show_vortex!(u) = show_vortex!(u, :white)
@@ -79,3 +79,4 @@ zplot(u) = implot(saneportrait(u).*abs2.(u)/maximum(abs2,u))
 argplot(u) = implot(saneportrait(u))
 zplot(u::Matrix{<:Real}) = zplot(u .|> Complex)
 argplot(u::Matrix{<:Real}) = argplot(u .|> Complex)
+twoplot(u) = plot(zplot(u), argplot(u))

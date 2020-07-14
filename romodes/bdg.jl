@@ -43,7 +43,7 @@ E(ψ) = dot(ψ,H(ψ,Ω)) |> real
 P = ODEProblem((ψ,_,_)->-1im*(K(ψ)-μlab*ψ), φ, (0.0,0.15))
 S1 = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.01)
 
-include("figs.jl")
+include("../figs.jl")
 
 zz1 = [find_vortex(S1[j]) for j = eachindex(S1)]
 R = mean(abs.(zz1))

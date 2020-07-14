@@ -26,7 +26,7 @@ y = [-10, 10]	# Plots.jl pixel offset
 @load "acqorbit.jld2" source Ω φ ψ
 @load "ss.jld2" S1t S1q
 
-include("figs.jl")
+include("../figs.jl")
 
 zz = [find_vortex(S1q[j], 2.5) for j = eachindex(S1q)]
 R = mean(abs.(zz))
@@ -72,10 +72,10 @@ PE = scatter(S1t[1:4:end], bphase(S1q[1:4:end])./(2π*nin(φ)), label="GPE Berry
     leg=:none, framestyle=:box,
     fontfamily="Latin Modern Sans", ms=3,
     size=(200,200), dpi=72)
+plot!([S1t[J], S1t[J]], [ylims()[1], 1.5], lc=RGB(0.3,0,0), label="snapshots")
 plot!(S1t, aa./2π, lw=2, label="Wu")
 scatter!(S1t[1:4:end], -bphase(imprint.(angle.(zz[1:4:end])))./(2π*nin(ψ)), label="Imp. Berry", ms=3)
-plot!([S1t[J], S1t[J]], [ylims()[1], 4], lc=:black, label="snapshots")
-# xticks!(0:2.5:7.5)
+xticks!(0:0.2:1.2)
 # yticks!(0:5:30)
 savefig(PE, "../figs/resp200702e.pdf")
 
