@@ -1,6 +1,7 @@
 # Given C, N, l, set up rotating trap system
 
 using LinearAlgebra, BandedMatrices, Optim
+using Statistics: mean
 
 h = min(l/(N+1), sqrt(√2*π/N))
 y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
@@ -64,55 +65,114 @@ function LinearAlgebra.mul!(y, H::Operator, x)
     y .= H.f(reshape(x,N,N))[:]
 end
 
-# Acquire a vortex orbiting at radius r₀
-function acquire_orbit(r₀, residual=1e-6)
-    # find central vortex for J limit with moat
-    
-    u = z.*copy(φ)
-    u ./= norm(u)
-    u .= ground_state(u, 0.0, residual)
+# Adjust Ω to acquire an orbiting vortex from an imprint at r₀
+# TODO think about Ju tolerance for extreme orbits
+function orbit_frequency(r₀, residual, Ωs = [0.0, 0.6])
+    # find J limit in case of moat
+    u = z.*φ;
+    u ./= norm(u);
+    u .= ground_state(u, 0.0, residual);
     Jmax = dot(u, J(u)) |> real
+    @info "Angular momentum limit" Jmax
     
-    # invariant: when (Ωs[1,j], rs[1,j]) is relaxed to gtol[j], it
-    # gives a vortex inside the target radius.  [2,j] is outside,
-    # where vortex-free counts as ∞.
+    a = log(10,residual)
+    g_tols = 10 .^ (-2:-0.5:a)
+    g_tols[end] ≈ residual || push!(g_tols, residual)
     
-    g_tols = 10 .^ (-3:-0.5:log(10,residual))
-    Ωs = repeat([0.0, 0.6], 1, length(g_tols))
-    rs = repeat([r₀, r₀], 1, length(g_tols))
     
     while true
         Ω = mean(Ωs)
-        r₁ = rv = mean(rs)
         u .= φ;
-        @. u *= (z-r₁);
+        @. u *= (z-r₀);
         u ./= norm(u);
         
-#        for gtol = g_tols
-j = 1
-gtol = g_tols[j]
+       for gtol = g_tols
             u .= ground_state(u, Ω, gtol);
             Ju = dot(u, J(u)) |> real
-            ru = abs(find_vortex(u))
-            if Ju < 0.1	# outside
-                Ωs[2,j] = Ω
-                rs[2,j] = r₁
-                break
-            elseif Ju > 0.9Jmax		# inside
-                Ωs[1,j] = Ω
-                rs[1,j] = r₁
-                break
-            elseif abs(ru-r₀) ≥ abs(ru-rv)
-                side = ru < r₀ ? 1 : 2
-                Ωs[side,j] = Ω
-                rs[side,j] = r₁
-                break
+            if Ju < 0.1
+                @debug "Free" gtol Ω r₀ Ju
+                j = 1
+            elseif Ju > 0.9Jmax
+                @debug "Central" gtol Ω r₀ Ju
+                j = 2
+            else
+                # TODO only show the lowest gtol in a sequence
+                @debug "Orbit" gtol Ω r₀ Ju
+                continue
             end
-            rv = ru
+            @info "Rotation convergence" Ω Ωtol=(Ωs[2]-Ωs[1])/2
+            (Ωs[j] == Ω || Ωs[1] ≥ Ωs[2]) && return NaN, u
+            Ωs[j] = Ω
+            break
         end
     
         0.1 < real(dot(u, J(u))) < 0.9Jmax  &&  break
     end
     
     mean(Ωs), u
+end
+
+# acquire a vortex orbiting at r₀
+function acquire_orbit(r₀, residual, tol=h)
+    Ω, q = orbit_frequency(r₀, residual);
+    rv = abs(find_vortex(q))
+    a = r₀ - rv
+    @assert a > 0
+    # Intialise rs to [inside, outside]
+    rs = [NaN, NaN]
+    for j = 0:4
+        r₁ = r₀
+        rv = 0.0
+        while rv < r₀
+            rs[1] = r₁
+            r₁ += a/2^j
+            Ω, q = orbit_frequency(r₁, residual);
+            isnan(Ω) && break
+            rv = abs(find_vortex(q))
+        end
+        if isnan(Ω)
+            continue
+        elseif rv ≥ r₀
+            rs[2] = r₁
+            break
+        end
+    end
+    any(isnan, rs) && return NaN, NaN, q
+    
+    # bisect
+    while abs(rv-r₀) > tol
+        r₁ = mean(rs)
+        Ω, q = orbit_frequency(r₁, residual);
+        rv = abs(find_vortex(q))
+        if rv < r₀
+            @debug "Inside" r₁ rv Ω
+            j = 1
+        else
+            @debug "outside" r₁ rv Ω
+            j = 2
+        end
+        @info "Imprint convergence" r=r₁ rtol=(rs[2]-rs[1])/2
+        (rs[j] == r₁ || rs[1] ≥ rs[2]) && return NaN, NaN, q
+        rs[j] = r₁
+    end
+    
+    rv, Ω, q
+end
+
+function poles(u)
+    rs = (-1:1)' .+ 1im*(-1:1)
+    rs *= h
+    conv(u, rs) = [rs.*u[j:j+2,k:k+2] |> sum for j = 1:N-2, k = 1:N-2]
+    P = zero(u)
+    P[2:end-1,2:end-1] .= conv(u, conj(rs))
+    Q = zero(u)
+    Q[2:end-1,2:end-1] .= conv(u, rs)
+    P, Q
+end
+
+find_vortex(u) = find_vortex(u, Inf)
+function find_vortex(u, R)
+    w = poles(u) |> first .|> abs
+    @. w *= abs(z) < R
+    z[argmax(w)]
 end

@@ -10,24 +10,6 @@ function sense_portrait(xs)
     xs .|> (x -> C[(x+mag)/2mag])
 end
 
-function poles(u)
-    rs = (-1:1)' .+ 1im*(-1:1)
-    rs *= h
-    conv(u, rs) = [rs.*u[j:j+2,k:k+2] |> sum for j = 1:N-2, k = 1:N-2]
-    P = zero(u)
-    P[2:end-1,2:end-1] .= conv(u, conj(rs))
-    Q = zero(u)
-    Q[2:end-1,2:end-1] .= conv(u, rs)
-    P, Q
-end
-
-find_vortex(u) = find_vortex(u, Inf)
-function find_vortex(u, R)
-    w = poles(u) |> first .|> abs
-    @. w *= abs(z) < R
-    z[argmax(w)]
-end
-
 function show_vortex!(u, clr=:white)
     v0 = find_vortex(u)
     scatter!([real(v0)],[imag(v0)],m=:circle, ms=2, mc=clr, msw=0, leg=:none)

@@ -4,7 +4,7 @@ source = open(@__FILE__) do f
     read(f, String)
 end
 
-using LinearAlgebra, BandedMatrices, Optim, JLD2
+using LinearAlgebra, BandedMatrices, Optim
 using Statistics: mean
 
 C = 3000
@@ -15,10 +15,8 @@ l = 20.0	# maximum domain size
 include("../system.jl")
 
 # r₀ = 1.7
-# r₀ = 2.5		# offset of imprinted vortex
-r₀ = 3.9
+# r₀ = 2.5		# vortex orbit radius
+r₀ = 3.2
 
-# Ω, φ = acquire_orbit(r₀, 1e-6)
+# r₀, Ω, φ = acquire_orbit(r₀, 1e-6)
 # ψ = ground_state(φ, Ω, 1e-6)
-
-# @save "acqorbit2.jld2" source Ω φ ψ
