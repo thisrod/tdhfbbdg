@@ -67,7 +67,7 @@ end
 
 # Adjust Ω to acquire an orbiting vortex from an imprint at r₀
 # TODO think about Ju tolerance for extreme orbits
-function orbit_frequency(r₀, residual, Ωs = [0.0, 0.6])
+function orbit_frequency(r₀, residual; Ωs = [0.0, 0.6], moat=false)
     # find J limit in case of moat
     u = z.*φ;
     u ./= norm(u);
@@ -84,12 +84,15 @@ function orbit_frequency(r₀, residual, Ωs = [0.0, 0.6])
         Ω = mean(Ωs)
         u .= φ;
         @. u *= (z-r₀);
+        if moat
+            @. u *= conj(z+R)
+        end
         u ./= norm(u);
         
        for gtol = g_tols
             u .= ground_state(u, Ω, gtol);
             Ju = dot(u, J(u)) |> real
-            if Ju < 0.1
+            if Ju < 0.1Jmax
                 @debug "Free" gtol Ω r₀ Ju
                 j = 1
             elseif Ju > 0.9Jmax
