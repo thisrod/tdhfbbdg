@@ -153,11 +153,6 @@ end
 # U0 = dot(ψ₀, U(ψ₀).*ψ₀)
 # V0 = dot(ψ₀, V.*ψ₀)
 
-function slice(u)
-    j = N÷2
-    sum(u[j:j+1,:], dims=1)[:]/2
-end
-
 # scatter(y, slice(W), msw=0, mc=:black, label="V")
 # scatter!(y, 750*slice(real.(φ)).+E0, msw=0, mc=:gray, label="q")
 

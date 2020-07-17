@@ -162,9 +162,15 @@ function acquire_orbit(r₀, residual, tol=h)
     rv, Ω, q
 end
 
+"""
+    P, Q = poles(u)
+
+Return the Wirtinger derivatives of u
+"""
 function poles(u)
+    u = complex.(u)
     rs = (-1:1)' .+ 1im*(-1:1)
-    rs *= h
+    rs /= h*sum(abs2.(rs))
     conv(u, rs) = [rs.*u[j:j+2,k:k+2] |> sum for j = 1:N-2, k = 1:N-2]
     P = zero(u)
     P[2:end-1,2:end-1] .= conv(u, conj(rs))
@@ -178,4 +184,9 @@ function find_vortex(u, R)
     w = poles(u) |> first .|> abs
     @. w *= abs(z) < R
     z[argmax(w)]
+end
+
+function slice(u)
+    j = N÷2
+    sum(u[j:j+1,:], dims=1)[:]/2
 end

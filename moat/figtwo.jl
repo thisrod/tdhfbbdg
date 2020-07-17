@@ -2,7 +2,7 @@
 
 using JLD2
 
-@load "mob.jld2"
+@load "moa.jld2"
 
 include("../system.jl")
 include("../figs.jl")
