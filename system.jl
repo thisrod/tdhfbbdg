@@ -190,3 +190,10 @@ function slice(u)
     j = N÷2
     sum(u[j:j+1,:], dims=1)[:]/2
 end
+
+function find_moat(u)
+    P, Q = poles(u)
+    @. (P-conj(Q))/2im/abs(u)
+end
+
+cscl(z) = (abs(z)>0) ? z/abs(z)*log(10,abs(z)) : Complex(1e-10)

@@ -52,6 +52,23 @@ function unroll(θ)
     Θ
 end
 
+"Wirtinger derivatives"
+function widir(u, zz=[]; ms=0.5, rel=false, rad=5)
+    P, Q = poles(u)
+    plots = []
+    vv = [P, (P+conj(Q))/2, (P-conj(Q))/2im, Q]
+    ss = ["z", "abs", "arg", "z*"]
+    for j = 1:4
+        Pj = zplot(rel ? (@. vv[j]*(r<rad)/abs(u)) : vv[j])
+        scatter!(real.(zz), imag.(zz), mc=:white, ms=ms, leg=:none)
+        xlims!(-5,5)
+        ylims!(-5,5)
+        title!(ss[j])
+        push!(plots, Pj)
+    end
+    plot(plots...)
+end
+
 # Plots and portraits are a bit wierd with pixel arrays
 implot(x,y,image) = plot(x, y, image,
     yflip=false, aspect_ratio=1, framestyle=:box, tick_direction=:out)
