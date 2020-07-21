@@ -79,3 +79,50 @@ argplot(u) = implot(saneportrait(u))
 zplot(u::Matrix{<:Real}) = zplot(u .|> Complex)
 argplot(u::Matrix{<:Real}) = argplot(u .|> Complex)
 twoplot(u) = plot(zplot(u), argplot(u))
+
+"Scatter plot with phase as color"
+function zscatter!(P, x, z; args...)
+    pxl = similar(z, 1, 1)
+    for j = eachindex(x)
+        pxl .= z[j]
+        scatter!(P, x[j:j], abs.(pxl), mc=portrait(pxl)[], msw=0, leg=:none; args...)
+    end
+    P
+end
+zscatter(x, z; args...) = zscatter!(plot(), x, z; args...)
+
+# rasters in the moat, around θ
+function waster(u, θ)
+    P, Q = poles(u)
+    ab = (P+conj(Q))/2
+    ar = (P-conj(Q))/2im
+    hh = @. angle(z*exp(-1im*θ))
+    mix = @. (R-0.5w < r < R+0.5w) & (-0.3 < hh < 0.3)
+    B = box(keys(u)[mix])
+#    zscatter(hh[mix], ab[mix]), zscatter(hh[mix], ar[mix]),
+#        zscatter(hh[mix], solrat(u)[mix]), 
+    zplot((@. ab/abs(u))[B]), zplot((@. ar/abs(u))[B]),
+        argplot(u[B]), zplot((solrat(u).*mix)[B])
+end
+
+function box(cixs)
+   j1 = k1 = typemax(Int)
+   j2 = k2 = typemin(Int)
+   for c in cixs
+       j1 = min(j1,c[1])
+       j2 = max(j2,c[1])
+       k1 = min(k1,c[2])
+       k2 = max(k2,c[2])
+   end
+   CartesianIndices((j1:j2, k1:k2))
+end
+
+# soliton ratio
+function solrat(u)
+    P, Q = poles(u)
+    P = P[2:end-1,2:end-1]
+    Q = Q[2:end-1,2:end-1]
+    v = zero(u)
+    v[2:end-1,2:end-1] = 1im*(P+conj(Q))./(P-conj(Q))
+    v
+end

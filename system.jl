@@ -193,7 +193,8 @@ end
 
 function find_moat(u)
     P, Q = poles(u)
-    @. (P-conj(Q))/2im/abs(u)
+    v = @. (R-w/2 < r < R+w/2)*abs(P-conj(Q))/abs(u)
+    z[argmax(v)]
 end
 
 cscl(z) = (abs(z)>0) ? z/abs(z)*log(10,abs(z)) : Complex(1e-10)
