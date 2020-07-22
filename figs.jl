@@ -15,7 +15,12 @@ function show_vortex!(u, clr=:white)
     scatter!([real(v0)],[imag(v0)],m=:circle, ms=2, mc=clr, msw=0, leg=:none)
 end
 
-show_vortex!(u) = show_vortex!(u, :white)
+function show_vortices!(u, clr=:white)
+    v0 = find_vortex(u)
+    v1 = find_moat(u)
+    scatter!([real(v0)],[imag(v0)],m=:circle, ms=2, mc=clr, msw=0, leg=:none)
+    scatter!([real(v1)],[imag(v1)],m=:circle, ms=2, mc=clr, msw=0, leg=:none)
+end
 
 # function bphase(S, ts)
 #     bp = [dot(S[j+1], S[j]) |> imag for j = 1:length(S)-1] |> cumsum
@@ -125,4 +130,12 @@ function solrat(u)
     v = zero(u)
     v[2:end-1,2:end-1] = 1im*(P+conj(Q))./(P-conj(Q))
     v
+end
+
+function Plots.scatter!(zz::Vector{Complex}, args...)
+    scatter!(real.(zz), imag.(zz), args)
+end
+
+function Plots.plot!(zz::Vector{Complex}, args...)
+    plot!(real.(zz), imag.(zz), args)
 end

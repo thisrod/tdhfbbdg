@@ -1,22 +1,26 @@
 # Vortices and solitons
 
-N = 300
+N = 400
 l = 7
 C = NaN
 
 include("system.jl")
 include("figs.jl")
 
-function imprint!(q, a, anti=true)
-    @. q *= anti ? conj(z-q) : (z-a)
+uu = exp.(2im*π*(0:0.02:1))
+
+function imprint!(q, a, anti=false)
+    @. q *= anti ? conj(z-a) : (z-a)
     @. q /= √(1+abs2(z-a))
 end
 
 imprint(q, args...) = imprint!(copy(q), args...)
 
-function vs(r)
-    v = r*z+(1-r)*conj(z)
-    @. v /= √(1+abs2(v))
+function vs(r, a=0, θ=angle(a); core=true)
+    w = @. exp(-1im*θ)*(z-a)
+    v = r*w+(1-r)*conj(w)
+    @. v *= exp(-1im*θ)
+    @. v /= core ? √(1+abs2(v)) : abs(v)
 end
 
 # rr = [0.0, 0.2, 0.3, 0.4, 0.45, 0.5, 0.55, 0.7, 1.0]
