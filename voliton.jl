@@ -7,7 +7,8 @@ C = NaN
 include("system.jl")
 include("figs.jl")
 
-uu = exp.(2im*π*(0:0.02:1))
+hh = 2π*(0:0.02:1)
+uu = exp.(1im*hh)
 
 function imprint!(q, a, anti=false)
     @. q *= anti ? conj(z-a) : (z-a)
@@ -19,7 +20,7 @@ imprint(q, args...) = imprint!(copy(q), args...)
 function vs(r, a=0, θ=angle(a); core=true)
     w = @. exp(-1im*θ)*(z-a)
     v = r*w+(1-r)*conj(w)
-    @. v *= exp(-1im*θ)
+    @. v *= exp(1im*sign(2r-1)θ)
     @. v /= core ? √(1+abs2(v)) : abs(v)
 end
 
@@ -49,3 +50,8 @@ end
 #     twoplot(roat(mm[j]))
 #     savefig("figs/resp200718$('a'+j+length(rr)-1).pdf")
 # end
+
+PA = plot()
+for s = [0, 0.45, 0.47, 0.5, 0.53, 0.55, 1]
+    scatter!(PA, hh, h^2/π*bphase([vs(s, u; core=false).*(r.<N*h/2) for u = uu]), label="$s", leg=:topleft)
+end
