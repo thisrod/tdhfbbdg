@@ -1,25 +1,14 @@
 # Process ground state and dynamics data
 
-using Plots, ComplexPhasePortrait, JLD2, LinearAlgebra
+using JLD2, LinearAlgebra
 using Statistics: mean
-
-# Plots and portraits are a bit wierd with pixel arrays
-implot(x,y,image) = plot(x, y, image,
-    yflip=false, aspect_ratio=1, framestyle=:box, tick_direction=:out)
-implot(image) = implot(y,y,image)
-saneportrait(u) = reverse(portrait(u), dims=1)
-zplot(u) = implot(saneportrait(u).*abs2.(u)/maximum(abs2,u))
-argplot(u) = implot(saneportrait(u))
-zplot(u::Matrix{<:Real}) = zplot(u .|> Complex)
-argplot(u::Matrix{<:Real}) = argplot(u .|> Complex)
 
 N = 100
 l = 20.0	# maximum domain size
-J = 11	# snapshots at S[J]
+C = NaN
+JJ = 11	# snapshots at S[JJ]
 
-h = min(l/(N+1), sqrt(√2*π/N))
-y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
-r = abs.(z)
+include("../system.jl")
 
 y = [-10, 10]	# Plots.jl pixel offset
 
@@ -47,23 +36,46 @@ end
 # 72 dpi is 1pt pixels
 popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72)
 
-PA = plot(zplot(S1q[J]), xshowaxis=false; popts...)
+PA = plot(zplot(S1q[JJ]), xshowaxis=false; popts...)
 plot_trace(zz[aa .≤ 2π], :white)
+ixs = @. 4.2-h<r<4.2+h
+rr = S1q[JJ][ixs]
+for (θ, s) = [(0, "1"), (π/2, "i"), (π, "-1"), (-π/2, "-i")]
+    z1 = z[ixs][argmin(@. abs(angle(rr)-θ))]
+    annotate!([real(z1)], [imag(z1)], text(s, :white, 9))
+end
 savefig(PA, "../figs/resp200702a.pdf")
 
-PB = plot(zplot(imprint(angle(zz[J]))), xshowaxis=false, yshowaxis=false; popts...)
+PB = plot(zplot(imprint(angle(zz[JJ]))), xshowaxis=false, yshowaxis=false; popts...)
 plot_trace(zz[aa .≤ 2π], :white)
 savefig(PB, "../figs/resp200702b.pdf")
 
-PC = plot(pci(S1q[1:J]) |> sense_portrait |> implot,
-    aspect_ratio=1; popts...)
-plot_trace(zz[1:J], :black)
+pp1 = pci(S1q[1:JJ])/h^2
+PC = plot(pp1 |> sense_portrait |> implot, aspect_ratio=1; popts...)
+plot_trace(zz[1:JJ], :black)
 savefig(PC, "../figs/resp200702c.pdf")
 
-PD = plot(-pci(imprint.(angle.(zz[1:J]))) |> sense_portrait |> implot,
+pp2 = -pci(imprint.(angle.(zz[1:JJ])))/h^2
+PD = plot(pp2 |> sense_portrait |> implot,
     aspect_ratio=1, yshowaxis=false; popts...)
-plot_trace(zz[1:J], :black)
+plot_trace(zz[1:JJ], :black)
 savefig(PD, "../figs/resp200702d.pdf")
+
+pr = range(minimum(pp1), maximum(pp1), length=50)
+pr = reshape(pr,1,:)
+PF = plot(pr[:], pr[:], sense_portrait(pr), aspect_ratio=1/7, yshowaxis=false,
+    framestyle=:box, tick_direction=:out, size=(200,55), dpi=72)
+ylims!(minimum(pp1), maximum(pp1))
+xticks!([-0.03, 0, 0.03, 0.06])
+savefig(PF, "../figs/resp200724b.pdf")
+
+pr = range(minimum(pp2), maximum(pp2), length=50)
+pr = reshape(pr,1,:)
+PG = plot(pr[:], pr[:], sense_portrait(pr), aspect_ratio=1/7, yshowaxis=false,
+    framestyle=:box, tick_direction=:out, size=(200,55), dpi=72)
+ylims!(minimum(pp2), maximum(pp2))
+xticks!([-0.03, 0, 0.03, 0.06])
+savefig(PG, "../figs/resp200724c.pdf")
 
 nin(u) = sum(abs2.(u[r .< R]))
 
@@ -72,11 +84,9 @@ PE = scatter(S1t[1:4:end], bphase(S1q[1:4:end])./(2π*nin(φ)), label="GPE Berry
     leg=:none, framestyle=:box,
     fontfamily="Latin Modern Sans", ms=3,
     size=(200,200), dpi=72)
-plot!([S1t[J], S1t[J]], [ylims()[1], 1.5], lc=RGB(0.3,0,0), label="snapshots")
+plot!([S1t[JJ], S1t[JJ]], [ylims()[1], 1.5], lc=RGB(0.3,0,0), label="snapshots")
 plot!(S1t, aa./2π, lw=2, label="Wu")
 scatter!(S1t[1:4:end], -bphase(imprint.(angle.(zz[1:4:end])))./(2π*nin(ψ)), label="Imp. Berry", ms=3)
 xticks!(0:0.2:1.2)
 # yticks!(0:5:30)
 savefig(PE, "../figs/resp200702e.pdf")
-
-run(`xetex figone.tex`)

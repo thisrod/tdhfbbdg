@@ -64,11 +64,11 @@ St *= Ω/2π
 ixs = 1:4:length(St)
 a = -nin(Rv)/2π*unroll(@. angle(ins[ixs])-angle(ins[1]))
 b = nin(R)/2π*unroll(@. angle(outs[ixs])-angle(ins[1]))
-PG = scatter(St[ixs], bphase(Su[ixs])./2π, label="GPE Berry",
+PG = scatter(St[ixs], bphase(Su)[ixs]/2π, label="GPE Berry",
     leg=:topleft, framestyle=:box,
     fontfamily="Latin Modern Sans", ms=3,
     size=(200,200), dpi=72)
 scatter!(St[ixs], a, label="N_in", ms=3)
 scatter!(St[ixs], b, label="N_out", ms=3)
 scatter!(St[ixs], a+b, label="N", ms=3)
-savefig(PG, "../figs/resp200722a.pdf")
+savefig(PG, "../figs/resp200724a.pdf")
