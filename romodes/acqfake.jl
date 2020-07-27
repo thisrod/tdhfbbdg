@@ -7,34 +7,39 @@ end
 C = 3000
 N = 100
 l = 20.0
+dt = 1e-4
 
+using DifferentialEquations
 include("../system.jl")
 include("../figs.jl")
 
-φ = ground_state(φ, 0, 1e-6)
-μ = dot(L(φ), φ) |> real
+ψ = ground_state(φ, 0, 1e-6)
+μ = dot(L(ψ), ψ) |> real
 r_TF = sqrt(μ)
-rr = (0:20)*r_TF/20
-nin = [sum(@. abs2(φ)*(r<rr[j])) for j = eachindex(rr)]
+rr = r_TF*collect(0.1:0.05:0.95)
+nin = [sum(@. abs2(ψ)*(r<s)) for s=0:h:r_TF]
 
-θ = 0.2
-bp = Float64[]
-decays = []
-for rv = rr
-    j = argmin(@. abs(z-rv))
-    n = abs2(φ[j])
-    ξ = 1/sqrt(2n*C)	# rmp-81-647
-    f(rv) = @. φ*(z-rv)/sqrt(abs2(z-rv)+2(ξ^2))
-    push!(decays, f(rv))
-    push!(bp, sum(conj(f(rv*exp(1im*θ))).*f(rv) |> imag))
+gp = Float64[]	# GPE
+ip = Float64[]	# imprinted
+ss = Float64[]	# end radii
+for r₀ = rr
+    Ω, q = orbit_frequency(r₀, 1e-3)
+    μlab = dot(q, L(q)) |> real
+    P = ODEProblem((ψ,_,_)->-1im*(L(ψ)-μlab*ψ), q, (0.0,0.15/Ω))
+    S = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.15/Ω)
+    r₁ = find_vortex(S[1])
+    r₂ = find_vortex(S[2])
+    θ = r₂*conj(r₁) |> angle
+    push!(ss, abs(r₁))
+    push!(gp, berry_diff(S[1], S[2])/θ)
+    push!(ip, berry_diff(imprint_phase(S[1]), imprint_phase(S[2]))/θ)
 end
 
-rr = rr/r_TF
-PF = plot(rr, nin, label="Wu",
+PF = plot(0:h/r_TF:1, nin, label="Wu",
     leg=:none, framestyle=:box,
     fontfamily="Latin Modern Sans", ms=2,
     size=(200,200), dpi=72)
-scatter!(rr, -bp./θ, ms=2, label="Imp. Berry")
+scatter!(ss/r_TF, -ip, ms=2, label="imprinted")
 xlims!(0,1)
 ylims!(0,1)
 savefig(PF, "../figs/resp200714a.pdf")

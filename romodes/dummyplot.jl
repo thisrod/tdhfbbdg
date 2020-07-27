@@ -17,7 +17,7 @@ y = [-10, 10]	# Plots.jl pixel offset
 
 include("../figs.jl")
 
-zz = [find_vortex(S1q[j], 2.5) for j = eachindex(S1q)]
+zz = [regress_vortex(S1q[j]) for j = eachindex(S1q)]
 R = mean(abs.(zz))
 aa = unroll(@. angle(zz) - angle(zz[1]))
 

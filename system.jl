@@ -73,13 +73,16 @@ function orbit_frequency(r₀, residual; Ωs = [0.0, 0.6], moat=false)
     u ./= norm(u);
     u .= ground_state(u, 0.0, residual);
     Jmax = dot(u, J(u)) |> real
-    @info "Angular momentum limit" Jmax
+    rc = find_vortex(u)
+    @debug "Angular momentum limit" Jmax
     
     a = log(10,residual)
     g_tols = 10 .^ (-2:-0.5:a)
-    g_tols[end] ≈ residual || push!(g_tols, residual)
+    if isempty(g_tols) || g_tols[end] ≉ residual
+        push!(g_tols, residual)
+    end
     
-    
+    mintol = Inf
     while true
         Ω = mean(Ωs)
         u .= φ;
@@ -93,23 +96,24 @@ function orbit_frequency(r₀, residual; Ωs = [0.0, 0.6], moat=false)
             u .= ground_state(u, Ω, gtol);
             Ju = dot(u, J(u)) |> real
             if Ju < 0.1Jmax
-                @debug "Free" gtol Ω r₀ Ju
                 j = 1
-            elseif Ju > 0.9Jmax
-                @debug "Central" gtol Ω r₀ Ju
+            elseif abs(find_vortex(u)-rc) < h
                 j = 2
+            elseif gtol < mintol
+                mintol = gtol
+                @debug "Orbit" gtol J=Ju Ω Ωtol=(Ωs[2]-Ωs[1])/2
+                continue
             else
-                # TODO only show the lowest gtol in a sequence
-                @debug "Orbit" gtol Ω r₀ Ju
                 continue
             end
-            @info "Rotation convergence" Ω Ωtol=(Ωs[2]-Ωs[1])/2
+            @debug ((j==1) ? "Free" : "Central") J=Ju Ω Ωtol=(Ωs[2]-Ωs[1])/2
+            # TODO 
             (Ωs[j] == Ω || Ωs[1] ≥ Ωs[2]) && return NaN, u
             Ωs[j] = Ω
             break
         end
     
-        0.1 < real(dot(u, J(u))) < 0.9Jmax  &&  break
+        0.1Jmax < real(dot(u, J(u))) && abs(find_vortex(u)-rc) ≥ h &&  break
     end
     
     mean(Ωs), u
@@ -179,11 +183,22 @@ function poles(u)
     P, Q
 end
 
-find_vortex(u) = find_vortex(u, Inf)
-function find_vortex(u, R)
-    w = poles(u) |> first .|> abs
-    @. w *= abs(z) < R
-    z[argmax(w)]
+function find_vortex(u)
+    P, Q = poles(u)
+    ixs = abs.(P) .> 0.5maximum(abs.(P))
+    regress_core(u, ixs)
+end
+
+function find_moat(u)
+    P, Q = poles(u)
+    v = @. (R-w/2 < r < R+w/2)*abs(P+conj(Q))/abs(u)
+    ixs = v .> 0.5maximum(v)
+    regress_core(u, ixs)
+end
+
+function regress_core(u, ixs)
+    a, b, c = [z[ixs] conj(z[ixs]) ones(size(z[ixs]))] \ u[ixs]
+    (b*conj(c)-conj(a)*c)/(abs2(a)-abs2(b))
 end
 
 function slice(u)
@@ -191,10 +206,12 @@ function slice(u)
     sum(u[j:j+1,:], dims=1)[:]/2
 end
 
-function find_moat(u)
-    P, Q = poles(u)
-    v = @. (R-w/2 < r < R+w/2)*abs(P-conj(Q))/abs(u)
-    z[argmax(v)]
+cscl(z) = (abs(z)>0) ? z/abs(z)*log(10,abs(z)) : Complex(1e-10)
+
+"Imprint an exp(iθ) phase while keeping the density"
+function imprint_phase(u)
+    r₀ = find_vortex(u)
+    @. abs(u)*(z-r₀)/abs(z-r₀)
 end
 
-cscl(z) = (abs(z)>0) ? z/abs(z)*log(10,abs(z)) : Complex(1e-10)
+berry_diff(u,v) = imag(sum(conj(v).*u))

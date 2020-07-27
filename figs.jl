@@ -15,6 +15,11 @@ function show_vortex!(u, clr=:white)
     scatter!([real(v0)],[imag(v0)],m=:circle, ms=2, mc=clr, msw=0, leg=:none)
 end
 
+function show_moat!(u, clr=:white)
+    v0 = find_moat(u)
+    scatter!([real(v0)],[imag(v0)],m=:circle, ms=2, mc=clr, msw=0, leg=:none)
+end
+
 function show_vortices!(u, clr=:white)
     v0 = find_vortex(u)
     v1 = find_moat(u)
