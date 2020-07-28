@@ -63,8 +63,10 @@ function unroll(θ)
 end
 
 "Wirtinger derivatives"
-function widir(u, zz=[]; ms=0.5, rel=false, rad=5)
+function widir(u, zz=[]; ms=0.5, rel=false, rad=5, mask=ones(size(u)))
     P, Q = poles(u)
+    P .*= mask
+    Q .*= mask
     plots = []
     vv = [P, (P+conj(Q))/2, (P-conj(Q))/2im, Q]
     ss = ["z", "abs", "arg", "z*"]
@@ -113,18 +115,6 @@ function waster(u, θ)
 #        zscatter(hh[mix], solrat(u)[mix]), 
     zplot((@. ab/abs(u))[B]), zplot((@. ar/abs(u))[B]),
         argplot(u[B]), zplot((solrat(u).*mix)[B])
-end
-
-function box(cixs)
-   j1 = k1 = typemax(Int)
-   j2 = k2 = typemin(Int)
-   for c in cixs
-       j1 = min(j1,c[1])
-       j2 = max(j2,c[1])
-       k1 = min(k1,c[2])
-       k2 = max(k2,c[2])
-   end
-   CartesianIndices((j1:j2, k1:k2))
 end
 
 # soliton ratio

@@ -197,9 +197,42 @@ function find_moat(u)
 end
 
 function regress_core(u, ixs)
+    ixs = expand_box(box(ixs))[:]
     a, b, c = [z[ixs] conj(z[ixs]) ones(size(z[ixs]))] \ u[ixs]
     (b*conj(c)-conj(a)*c)/(abs2(a)-abs2(b))
 end
+
+function expand_box(bb::CartesianIndices{2})
+    e1, e2 = ((1,0), (0,1)) .|> CartesianIndex
+    # TODO raise issue on CartesianIndex half-pregnancy
+    if length(bb) ==1
+        bb = bb[]
+        bb = [
+            bb-e1-e2 bb-e1 bb-e1+e2;
+            bb-e2 bb bb+e2;
+            bb+e1-e2 bb+e1 bb+e1+e2] 
+    elseif size(bb,1) ==1
+        bb = [bb .- e1; bb; bb .+ e1] 
+    elseif size(bb,2) ==1
+        bb = [bb .- e2 bb bb .+ e2]
+    end
+    bb
+end
+
+"Bounding box of cartesian indices"
+function box(cixs::AbstractVector{CartesianIndex{2}})
+   j1 = k1 = typemax(Int)
+   j2 = k2 = typemin(Int)
+   for c in cixs
+       j1 = min(j1,c[1])
+       j2 = max(j2,c[1])
+       k1 = min(k1,c[2])
+       k2 = max(k2,c[2])
+   end
+   CartesianIndices((j1:j2, k1:k2))
+end
+
+box(ixs::AbstractMatrix{Bool}) = box(keys(ixs)[ixs])
 
 function slice(u)
     j = N÷2
