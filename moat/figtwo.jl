@@ -23,11 +23,11 @@ Rv = mean(abs.(ins))
 
 nin(R) = sum(abs2.(ψ[r .< R]))
 
-scat!(zz; ms=1) = scatter!(real(zz), imag(zz), ms=ms, mc=:white, msw=0)
 
-function crumbs!(j)
-    plot!(real(ins[1:j]), imag(ins[1:j]), lc=:white, lw=0.5)
-    plot!(real(outs[1:j]), imag(outs[1:j]), lc=:white, lw=0.5)
+function crumbs!(j, c=:white)
+    scat!(zz; ms=1) = scatter!(real(zz), imag(zz), ms=ms, mc=c, msw=0)
+    plot!(real(ins[1:j]), imag(ins[1:j]), lc=c, lw=0.5)
+    plot!(real(outs[1:j]), imag(outs[1:j]), lc=c, lw=0.5)
     scat!(ins[1:1], ms=1.5)
     scat!(outs[1:1], ms=1.5)
     scat!(ins[1:9:j])
@@ -35,8 +35,7 @@ function crumbs!(j)
 end
 
 # 72 dpi is 1pt pixels
-popts = (xlims=(-7,7), ylims=(-7,7), size=(200,200), dpi=72, leg=:none,
-    xlabel="", ylabel="")
+popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72, leg=:none)
 
 PA = plot(zplot(Su[j1]), xshowaxis=false; popts...)
 crumbs!(j1)
@@ -52,25 +51,30 @@ savefig(PC, "../figs/resp200716c.pdf")
 
 PD = plot(pci(Su[1:j1]) |> sense_portrait |> implot,
     aspect_ratio=1; popts...)
+crumbs!(j1, :black)
 savefig(PD, "../figs/resp200716d.pdf")
     
 PE = plot(pci(Su[1:j2]) |> sense_portrait |> implot,
     aspect_ratio=1, yshowaxis=false; popts...)
+crumbs!(j2, :black)
 savefig(PE, "../figs/resp200716e.pdf")
         
 PF = plot(pci(Su[1:j3]) |> sense_portrait |> implot,
     aspect_ratio=1, yshowaxis=false; popts...)
+crumbs!(j3, :black)
 savefig(PF, "../figs/resp200716f.pdf")
 
 St *= Ω/2π
 ixs = 1:12:length(St)
 a = -nin(Rv)/2π*unroll(@. angle(ins[ixs])-angle(ins[1]))
 b = nin(R)/2π*unroll(@. angle(outs[ixs])-angle(ins[1]))
-PG = scatter(St[ixs], bphase(Su)[ixs]/2π, label="GPE Berry",
-    leg=:topleft, framestyle=:box,
+PG = plot([St[j1], St[j1]], [-0.6, 0.2], lc=RGB(0.3,0,0),
+    leg=:none, framestyle=:box,
     fontfamily="Latin Modern Sans", ms=3,
     size=(200,200), dpi=72)
-scatter!(St[ixs], a, label="N_in", ms=3)
-scatter!(St[ixs], b, label="N_out", ms=3)
-scatter!(St[ixs], a+b, label="N", ms=3)
+plot!([St[j3], St[j3]], [-0.6, 0.2], lc=RGB(0.3,0,0), label="snapshots")
+plot!(St[ixs], -a, label="N_in")
+plot!(St[ixs], -b, label="N_out")
+plot!(St[ixs], -a-b, label="N")
+scatter!(St[ixs], -bphase(Su)[ixs]/2π, label="GPE Berry", ms=2)
 savefig(PG, "../figs/resp200724a.pdf")

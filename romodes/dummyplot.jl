@@ -17,7 +17,7 @@ y = [-10, 10]	# Plots.jl pixel offset
 
 include("../figs.jl")
 
-zz = [regress_vortex(S1q[j]) for j = eachindex(S1q)]
+zz = [find_vortex(S1q[j]) for j = eachindex(S1q)]
 R = mean(abs.(zz))
 aa = unroll(@. angle(zz) - angle(zz[1]))
 
@@ -38,16 +38,16 @@ popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72)
 
 PA = plot(zplot(S1q[JJ]), xshowaxis=false; popts...)
 plot_trace(zz[aa .≤ 2π], :white)
-ixs = @. 4.2-h<r<4.2+h
-rr = S1q[JJ][ixs]
-for (θ, s) = [(0, "1"), (π/2, "i"), (π, "-1"), (-π/2, "-i")]
-    z1 = z[ixs][argmin(@. abs(angle(rr)-θ))]
-    annotate!([real(z1)], [imag(z1)], text(s, :white, 9))
-end
 savefig(PA, "../figs/resp200702a.pdf")
 
 PB = plot(zplot(imprint(angle(zz[JJ]))), xshowaxis=false, yshowaxis=false; popts...)
 plot_trace(zz[aa .≤ 2π], :white)
+ixs = @. 4.2-h<r<4.2+h
+rr = S1q[JJ][ixs]
+for (θ, s) = [(0, "0"), (π/2, "pi/2"), (π, "pi"), (-π/2, "3pi/2")]
+    z1 = z[ixs][argmin(@. abs(angle(rr)-θ))]
+    annotate!([real(z1)], [imag(z1)], text(s, :white, 9))
+end
 savefig(PB, "../figs/resp200702b.pdf")
 
 pp1 = pci(S1q[1:JJ])/h^2

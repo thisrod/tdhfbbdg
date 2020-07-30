@@ -8,6 +8,11 @@ y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
 r = abs.(z)
 V = r² = abs2.(z)
 
+# Maximum kinetic and trap energy on this grid
+# Emax ≈ Tmax/2 + Vmax/2 for an SHO
+Tmax = π^2/h^2
+Vmax = N^2*h^2/2
+
 # Finite difference matrices.  ∂ on left is ∂y, ∂' on right is ∂x
 
 function op(stencil)
