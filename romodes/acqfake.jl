@@ -42,12 +42,12 @@ for r₀ = rr
     push!(nv, sum(@. abs2(q)*(r<abs(r₁))))
 end
 
-PF = plot(0:h/5r_TF:1, nin, label="Wu",
+PF = plot(0:h/5r_TF:1, nin,
     leg=:none, framestyle=:box,
     fontfamily="Latin Modern Sans", ms=1.5,
-    size=(200,200), dpi=72)
-plot!(ss/r_TF, nv, label="core")
-scatter!(ss/r_TF, -ip, ms=2, label="imprinted")
+    size=(200,200), dpi=72; insty...)
+# plot!(ss/r_TF, nv, label="core")
+scatter!(ss/r_TF, -ip; impsty...)
 xlims!(0,1)
 ylims!(0,1)
 savefig(PF, "../figs/resp200714a.pdf")

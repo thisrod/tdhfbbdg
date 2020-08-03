@@ -1,6 +1,16 @@
 # plotting functions
 
-using Plots, ComplexPhasePortrait
+using Plots, ComplexPhasePortrait, Colors
+
+# Colors for Berry phase plots
+snapcol = RGB(0.3,0,0)
+bpsty, impsty, insty, outsty, nsty =
+    distinguishable_colors(5+3, [snapcol, RGB(1,1,1), RGB(0,0,0)])[4:end]
+bpsty = (ms=2, mc=bpsty, msc=0.5bpsty)
+impsty = (ms=2, mc=impsty, msc=0.5impsty)
+insty = (lc=insty,)
+outsty = (lc=outsty,)
+nsty = (lc=nsty,)
 
 "ComplexPhasePortrait, but with real sign instead of phase"
 function sense_portrait(xs)

@@ -80,13 +80,13 @@ savefig(PG, "../figs/resp200724c.pdf")
 nin(u) = sum(abs2.(u[r .< R]))
 
 S1t *= Ω/2π
-PE = scatter(S1t[1:4:end], bphase(S1q[1:4:end])./(2π*nin(φ)), label="GPE Berry",
+PE = scatter(S1t[1:4:end], bphase(S1q[1:4:end])./(2π*nin(φ)), 
     leg=:none, framestyle=:box,
-    fontfamily="Latin Modern Sans", ms=3,
-    size=(200,200), dpi=72)
+    fontfamily="Latin Modern Sans",
+    size=(200,200), dpi=72; bpsty...)
 plot!([S1t[JJ], S1t[JJ]], [ylims()[1], 1.5], lc=RGB(0.3,0,0), label="snapshots")
-plot!(S1t, aa./2π, lw=2, label="Wu")
-scatter!(S1t[1:4:end], -bphase(imprint.(angle.(zz[1:4:end])))./(2π*nin(ψ)), label="Imp. Berry", ms=3)
+plot!(S1t, aa./2π; insty...)
+scatter!(S1t[1:4:end], -bphase(imprint.(angle.(zz[1:4:end])))./(2π*nin(ψ)); impsty...)
 xticks!(0:0.2:1.2)
 # yticks!(0:5:30)
 savefig(PE, "../figs/resp200702e.pdf")

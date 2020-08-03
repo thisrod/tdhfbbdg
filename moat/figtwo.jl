@@ -68,13 +68,13 @@ St *= Ω/2π
 ixs = 1:12:length(St)
 a = -nin(Rv)/2π*unroll(@. angle(ins[ixs])-angle(ins[1]))
 b = nin(R)/2π*unroll(@. angle(outs[ixs])-angle(ins[1]))
-PG = plot([St[j1], St[j1]], [-0.6, 0.2], lc=RGB(0.3,0,0),
+PG = plot([St[j1], St[j1]], [-0.6, 0.2], lc=snapcol,
     leg=:none, framestyle=:box,
     fontfamily="Latin Modern Sans", ms=3,
     size=(200,200), dpi=72)
-plot!([St[j3], St[j3]], [-0.6, 0.2], lc=RGB(0.3,0,0), label="snapshots")
-plot!(St[ixs], -a, label="N_in")
-plot!(St[ixs], -b, label="N_out")
-plot!(St[ixs], -a-b, label="N")
-scatter!(St[ixs], -bphase(Su)[ixs]/2π, label="GPE Berry", ms=2)
+plot!([St[j3], St[j3]], [-0.6, 0.2], lc=snapcol)
+plot!(St[ixs], -a; insty...)
+plot!(St[ixs], -b; outsty...)
+plot!(St[ixs], -a-b; nsty...)
+scatter!(St[ixs], -bphase(Su)[ixs]/2π; bpsty...)
 savefig(PG, "../figs/resp200724a.pdf")
