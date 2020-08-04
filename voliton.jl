@@ -1,13 +1,15 @@
 # Vortices and solitons
 
 N = 400
-l = 7
+l = 15
 C = NaN
+R = 2.0
+rc = 1.0	# core radius
 
 include("system.jl")
 include("figs.jl")
 
-hh = 2π*(0:0.02:1)
+hh = 2π*(0:0.01:1)
 uu = exp.(1im*hh)
 
 function imprint!(q, a, anti=false)
@@ -30,6 +32,7 @@ end
 #     savefig("figs/resp200718$('a'+j-1).pdf")
 # end
 
+"Approximate a soliton as a string of vortices"
 function roat(m,ξ=0.15)
     c = exp(2π*1im/m)
     u = similar(z)
@@ -55,3 +58,7 @@ PA = plot()
 for s = [0, 0.45, 0.47, 0.5, 0.53, 0.55, 1]
     scatter!(PA, hh, h^2/π*bphase([vs(s, u; core=false).*(r.<N*h/2) for u = uu]), label="$s", leg=:topleft)
 end
+
+bp = pci([vs(0.2, R*u) for u = uu])
+# h^2*sum(bp) / (2π^2*R^2)
+# plot(bp |> sense_portrait |> implot, aspect_ratio=1)
