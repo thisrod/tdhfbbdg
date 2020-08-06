@@ -2,16 +2,16 @@
 
 using DifferentialEquations, JLD2
 
-C = 10_000.0
-N = 400
-l = 15.0
-R = 2.6
-w = 0.2
-μoff = 4
+# C = 10_000.0
+# N = 400
+# l = 15.0
+# R = 2.6
+# w = 0.2
+# μoff = 4
 gtol = 10^-11.5
 dt = 10^-4.5
 
-# @load "mu.jld2"
+@load "mu.jld2"
 
 include("../system.jl")
 include("../figs.jl")
@@ -19,19 +19,19 @@ include("../figs.jl")
 # Add moat
 @. V += 100*exp(-(r-R)^2/2/w^2)
 
-φ = ground_state(φ, 0, gtol)
-
-# Set chemical potential to zero outside the moat, and shift inner potential
-
-t(x) = (tanh(x)+1)/2
-χ = @. t((R+r)/w)*t((R-r)/w)
-μL = dot(φ, L(φ)) |> real
-@. V += μoff*χ - μL
-P = ODEProblem((ψ,_,_)->-1im*L(ψ), φ, (0.0,1.5))
-S = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.1)
-St = S.t
-Su = S.u
-@save "mu.jld2" C N l R w μoff St Su
+# φ = ground_state(φ, 0, gtol)
+# 
+# # Set chemical potential to zero outside the moat, and shift inner potential
+# 
+# t(x) = (tanh(x)+1)/2
+# χ = @. t((R+r)/w)*t((R-r)/w)
+# μL = dot(φ, L(φ)) |> real
+# @. V += μoff*χ - μL
+# P = ODEProblem((ψ,_,_)->-1im*L(ψ), φ, (0.0,1.5))
+# S = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.1)
+# St = S.t
+# Su = S.u
+# @save "mu.jld2" C N l R w μoff St Su
 
 function sce(u, hoff=0)
    u = slice(u)

@@ -12,6 +12,12 @@ insty = (lc=insty,)
 outsty = (lc=outsty,)
 nsty = (lc=nsty,)
 
+popts = (dpi=72, leg=:none, framestyle=:box, fontfamily="Latin Modern Sans")
+imopts = (popts..., xlims=(-5,5), ylims=(-5,5), size=(200,200))
+sqopts = (popts..., size=(200,200))
+recopts = (popts..., size=(100,200))
+
+
 "ComplexPhasePortrait, but with real sign instead of phase"
 function sense_portrait(xs)
     mag = maximum(abs, xs)
@@ -49,7 +55,10 @@ end
 #     title!("Geometric phases by GPE")
 # end
 
+"pci([q1, q2, ...]) pointwise Berry phase after sequence of states"
 pci(S) = [@. imag(conj(S[j+1])*S[j]) for j = 1:length(S)-1] |> sum
+
+"bphase([q1, q2, ...]) cumulative Berry phase for sequence of states"
 function bphase(S)
     bp = [dot(S[j+1], S[j]) |> imag for j = 1:length(S)-1] |> cumsum
     [0; bp]
