@@ -100,6 +100,8 @@ function widir(u, zz=[]; ms=0.5, rel=false, rad=5, mask=ones(size(u)))
     plot(plots...)
 end
 
+unit(z) = z/abs(z)
+
 # Plots and portraits are a bit wierd with pixel arrays
 implot(x,y,image) = plot(x, y, image,
     yflip=false, aspect_ratio=1, framestyle=:box, tick_direction=:out)
@@ -109,6 +111,7 @@ zplot(u) = implot(saneportrait(u).*abs2.(u)/maximum(abs2,u))
 argplot(u) = implot(saneportrait(u))
 zplot(u::Matrix{<:Real}) = zplot(u .|> Complex)
 argplot(u::Matrix{<:Real}) = argplot(u .|> Complex)
+zplot(u::BitArray{2}) = zplot(u .|> Float64)
 twoplot(u) = plot(zplot(u), argplot(u))
 
 "Scatter plot with phase as color"
