@@ -2,7 +2,9 @@
 
 using DifferentialEquations, JLD2
 
-@load "mu.jld2"
+@load "mod.jld2"
+
+jj = 9	# snapshot index
 
 include("../system.jl")
 include("../figs.jl")
@@ -43,22 +45,29 @@ function derplot(q)
     P1,P2
 end
 
-PA = plot(Su[end] |> zplot; imopts...)
+PA = plot(Su[jj] |> zplot; imopts...)
 savefig("../figs/resp200805a.pdf")
 
-PB = plot(pci(Su) |> sense_portrait |> implot,
+PB = plot(pci(Su[1:jj]) |> sense_portrait |> implot,
     aspect_ratio=1; imopts...)
 savefig("../figs/resp200805b.pdf")
 
-PC, PD = derplot(Su[end])
+PC, PD = derplot(Su[jj])
 
-PC = plot(PC; ms=2, msw=0, mc=:black, xticks=[2.4, 2.6, 2.8], recopts...)
+PC = plot(PC; ms=2, msw=0, mc=:green, xticks=[2.4, 2.6, 2.8], recopts...)
 savefig("../figs/resp200805c.pdf")
 
-PD = plot(PD; ms=2, msw=0, mc=:black, xticks=[2.4, 2.6, 2.8], recopts...)
+PD = plot(PD; ms=2, msw=0, mc=:green, xticks=[2.4, 2.6, 2.8], recopts...)
 savefig("../figs/resp200805d.pdf")
 
 nin = sum(@. abs2(Su[1])*(r<R))
-PE = plot(St, nin*μoff.*St; insty..., sqopts...)
-scatter!(St, bphase(Su); bpsty...)
+PE = plot([St[jj], St[jj]]/2π, [0.15, 0.45], lc=RGB(0.3,0,0), label="snapshots")
+plot!(St/2π, nin*μoff.*St/2π; insty..., sqopts...)
+scatter!(St/2π, bphase(Su)/2π; bpsty...)
 savefig("../figs/resp200805e.pdf")
+
+
+PF = plot(; leg=:none)
+for j = 2:10
+    scatter!(Su[j][mx], label="$(St[j])", ms=1.5, msw=0)
+end

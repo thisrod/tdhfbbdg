@@ -34,13 +34,13 @@ function plot_trace(z, col)
 end
 
 # 72 dpi is 1pt pixels
-popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72)
+# popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72)
 
-PA = plot(zplot(S1q[JJ]), xshowaxis=false; popts...)
+PA = plot(zplot(S1q[JJ]), xshowaxis=false; imopts...)
 plot_trace(zz[aa .≤ 2π], :white)
 savefig(PA, "../figs/resp200702a.pdf")
 
-PB = plot(zplot(imprint(angle(zz[JJ]))), xshowaxis=false, yshowaxis=false; popts...)
+PB = plot(zplot(imprint(angle(zz[JJ]))), xshowaxis=false, yshowaxis=false; imopts...)
 plot_trace(zz[aa .≤ 2π], :white)
 ixs = @. 4.2-h<r<4.2+h
 rr = S1q[JJ][ixs]
@@ -51,23 +51,15 @@ end
 savefig(PB, "../figs/resp200702b.pdf")
 
 pp1 = pci(S1q[1:JJ])/h^2
-PC = plot(pp1 |> sense_portrait |> implot, aspect_ratio=1; popts...)
+PC = plot(pp1 |> sense_portrait |> implot, aspect_ratio=1; imopts...)
 plot_trace(zz[1:JJ], :black)
 savefig(PC, "../figs/resp200702c.pdf")
 
 pp2 = -pci(imprint.(angle.(zz[1:JJ])))/h^2
 PD = plot(pp2 |> sense_portrait |> implot,
-    aspect_ratio=1, yshowaxis=false; popts...)
+    aspect_ratio=1, yshowaxis=false; imopts...)
 plot_trace(zz[1:JJ], :black)
 savefig(PD, "../figs/resp200702d.pdf")
-
-pr = range(minimum(pp1), maximum(pp1), length=50)
-pr = reshape(pr,1,:)
-PF = plot(pr[:], pr[:], sense_portrait(pr), aspect_ratio=1/7, yshowaxis=false,
-    framestyle=:box, tick_direction=:out, size=(200,55), dpi=72)
-ylims!(minimum(pp1), maximum(pp1))
-xticks!([-0.03, 0, 0.03, 0.06])
-savefig(PF, "../figs/resp200724b.pdf")
 
 pr = range(minimum(pp2), maximum(pp2), length=50)
 pr = reshape(pr,1,:)
