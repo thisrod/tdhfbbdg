@@ -9,12 +9,6 @@ jj = 9	# snapshot index
 include("../system.jl")
 include("../figs.jl")
 
-# Add moat
-@. V += 100*exp(-(r-R)^2/2/w^2)
-
-# 72 dpi is 1pt pixels
-popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72, leg=:none)
-
 function sce(u, hoff=0)
    u = slice(u)
    P1 = scatter(y, abs2.(u)/h^2, mc=:black, ms=1.5, msw=0, leg=:none)
@@ -37,11 +31,14 @@ function Df(q,s)
     cs[2]
 end
 
-function derplot(q)
-    P1 = scatter(r[mx], angle.(q[mx]))
+function derplot(qs...)
+    P1 = plot()
+    P2 = plot()
     xlims!(R+hh[1], R+hh[end])
-    dd = [Df(q, R+a) for a in hh]
-    P2 = scatter(R.+hh, dd)
+    for q in qs
+        scatter!(P1, r[mx], angle.(q[mx]))
+        scatter!(P2, R.+hh, [Df(q, R+a) for a in hh])
+    end
     P1,P2
 end
 

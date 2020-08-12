@@ -3,14 +3,15 @@
 using Plots, ComplexPhasePortrait, Colors
 
 # Colors for Berry phase plots
-snapcol = RGB(0.3,0,0)
+snapsty = RGB(0.3,0,0)
 bpsty, impsty, insty, outsty, nsty =
-    distinguishable_colors(5+3, [snapcol, RGB(1,1,1), RGB(0,0,0)])[4:end]
+    distinguishable_colors(5+3, [snapsty, RGB(1,1,1), RGB(0,0,0)])[4:end]
 bpsty = (ms=2, mc=bpsty, msc=0.5bpsty)
 impsty = (ms=2, mc=impsty, msc=0.5impsty)
 insty = (lc=insty,)
 outsty = (lc=outsty,)
 nsty = (lc=nsty,)
+snapsty = (lc=snapsty, lw=0.5)
 
 popts = (dpi=72, leg=:none, framestyle=:box, fontfamily="Latin Modern Sans")
 imopts = (popts..., xlims=(-5,5), ylims=(-5,5), size=(200,200))
@@ -19,8 +20,7 @@ recopts = (popts..., size=(100,200))
 
 
 "ComplexPhasePortrait, but with real sign instead of phase"
-function sense_portrait(xs)
-    mag = maximum(abs, xs)
+function sense_portrait(xs, mag=maximum(abs, xs))
     C = cgrad([:cyan, :white, :red])
     # TODO stability at |x| ≈ mag
     xs .|> (x -> C[(x+mag)/2mag])
@@ -56,7 +56,13 @@ end
 # end
 
 "pci([q1, q2, ...]) pointwise Berry phase after sequence of states"
-pci(S) = [@. imag(conj(S[j+1])*S[j]) for j = 1:length(S)-1] |> sum
+function pci(S)
+    if length(S) == 1
+        zero(S[])
+    else
+        [@. imag(conj(S[j+1])*S[j]) for j = 1:length(S)-1] |> sum
+    end
+end
 
 "bphase([q1, q2, ...]) cumulative Berry phase for sequence of states"
 function bphase(S)
@@ -155,4 +161,8 @@ end
 
 function Plots.plot!(zz::Vector{Complex}, args...)
     plot!(real.(zz), imag.(zz), args)
+end
+
+function movie_plot(St, Su)
+    nothing
 end

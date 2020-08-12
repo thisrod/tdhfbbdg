@@ -8,11 +8,13 @@ C = 3000
 N = 100
 l = 20.0
 dt = 1e-4
+R = 1.4095863217731164	# orbit radius from dummyplot
 
 using DifferentialEquations, Interpolations
 include("../system.jl")
 include("../figs.jl")
 
+# Slight discrepancy: dummyplot uses Ω to correct μ for centrifugal pressure
 ψ = ground_state(φ, 0, 1e-6)
 μ = dot(L(ψ), ψ) |> real
 r_TF = sqrt(μ)
@@ -30,8 +32,7 @@ ss = Float64[]	# end radii
 nv = Float64[]	# nin minus core
 for r₀ = rr
     Ω, q = orbit_frequency(r₀, 1e-3)
-    μlab = dot(q, L(q)) |> real
-    P = ODEProblem((ψ,_,_)->-1im*(L(ψ)-μlab*ψ), q, (0.0,0.15/Ω))
+    P = ODEProblem((ψ,_,_)->-1im*(L(ψ)-μ*ψ), q, (0.0,0.15/Ω))
     S = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.15/Ω)
     r₁ = find_vortex(S[1])
     r₂ = find_vortex(S[2])
@@ -42,8 +43,9 @@ for r₀ = rr
     push!(nv, sum(@. abs2(q)*(r<abs(r₁))))
 end
 
-PF = plot(0:h/5r_TF:1, nin,ms=1.5; insty..., recopts...)
-# plot!(ss/r_TF, nv, label="core")
+PF = plot()
+plot!([R/r_TF, R/r_TF], [0.0, 0.4]; snapsty...)
+plot!(0:h/5r_TF:1, nin,ms=1.5; insty..., recopts...)
 scatter!(ss/r_TF, -ip; impsty...)
 xlims!(0,1)
 ylims!(0,1)
