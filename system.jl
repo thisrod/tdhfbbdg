@@ -4,7 +4,7 @@ using LinearAlgebra, BandedMatrices, Optim
 using Statistics: mean
 
 h = min(l/(N+1), sqrt(√2*π/N))
-y = h/2*(1-N:2:N-1);  x = y';  z = x .+ 1im*y
+y = h/2*(1-N:2:N-1);  x = y';  z = Complex.(x,y)
 r = abs.(z)
 V = r² = abs2.(z)
 
@@ -36,13 +36,22 @@ H(ψ) = T(ψ)+(V+U(ψ)/2).*ψ
 φ = @.cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
 φ ./= norm(φ)
 
-function ground_state(initial, Ω, g_tol)
+"""
+    ground_state(φ₀, Ω, g_tol)
+
+Return a relaxed order parameter in a rotating  frame
+
+The initial guess φ₀ is relaxed to residual (L-μ)ψ < g_tol.
+"""
+function ground_state(initial, Ω, g_tol;
+        method=ConjugateGradient(manifold=Sphere()),
+        iterations=10_000)
     result = optimize(
         ψ -> dot(ψ,H(ψ,Ω)) |> real,
         (buf,ψ) -> copyto!(buf, 2*L(ψ,Ω)),
         initial,
-        ConjugateGradient(manifold=Sphere()),
-        Optim.Options(iterations=10_000, g_tol=g_tol, allow_f_increases=true)
+        method,
+        Optim.Options(iterations=iterations, g_tol=g_tol, allow_f_increases=true)
     )
     Optim.converged(result) || error("Ground state failed to converge")
     result.minimizer
@@ -171,6 +180,94 @@ function acquire_orbit(r₀, residual, tol=h)
     rv, Ω, q
 end
 
+# New strategy.  Solve on small grid, trace intervals.  Increase
+# grid size, interpolate for initial guess, bisection search to find
+# which interval fails on new grid.  Restart from previous interval.
+
+lattice_frequency(n::Int, residual; Ωs = [0.0, 1.0]) =
+    lattice_frequency(seed_lattice(n), residual; Ωs=Ωs)
+
+"""
+    Ω, ψ = lattice_frequency(u₀, residual; Ωs = [0.0, 0.1])
+
+Relax u₀ to a lattice ψ with the same number of vortices
+
+The function also returns a frequency Ω for a rotating frame in
+which ψ is stationary, or NaN if there is no such frequency in the
+range Ωs.
+"""
+function lattice_frequency(u₀, residual; Ωs = [0.0, 0.1])
+
+    u₀ /= norm(u₀)
+    u = similar(u₀)
+
+    # Count vortices inside TF radius
+    q₀ = ground_state(φ, 0, 1e-6)
+    μ = dot(L(q₀),q₀) |> real
+    RTF = sqrt(μ)
+    ixs = eachindex(z)
+    ixs = ixs[@. RTF-h < r[ixs] < RTF+h]
+    sort!(ixs, by= j->angle(z[j]))
+    function winding(q)
+        hh = unroll(angle.(q[ixs]))/2π
+        round(Int, hh[end]-hh[1])
+    end
+    nv₀ = winding(u₀)
+    @debug "R_TF winding number" nv₀
+    
+    a = log(10,residual)
+    g_tols = 10 .^ (-2:-0.5:a)
+    if isempty(g_tols) || g_tols[end] ≉ residual
+        push!(g_tols, residual)
+    end
+    
+    mintol = Inf
+    while true
+        Ω = mean(Ωs)
+        u .= u₀;
+        
+       for gtol = g_tols
+            u .= ground_state(u, Ω, gtol);
+            nv = winding(u)
+            if nv < nv₀
+                j = 1
+            elseif nv > nv₀
+                j = 2
+            elseif gtol < mintol
+                mintol = gtol
+                @debug "Lattice" gtol Ω Ωtol=(Ωs[2]-Ωs[1])/2
+                continue
+            else
+                continue
+            end
+            @debug ((j==1) ? "Too few" : "Too many") nv Ω Ωtol=(Ωs[2]-Ωs[1])/2
+            (Ωs[j] == Ω || Ωs[1] ≥ Ωs[2]) && return NaN, u
+            Ωs[j] = Ω
+            break
+        end
+    
+        winding(u) == nv₀ &&  break
+    end
+    
+    mean(Ωs), u
+end
+
+function seed_lattice(n)
+    q = copy(φ)
+    off = 0.0
+    if n == 1 || n > 3
+        q .*= z
+        n -= 1
+        off = h
+    end
+    for j = 1:n
+        # offset to break symmetry
+        @. q *= (z-exp(1im*j/(n-1))-off)
+    end
+    q
+end
+
+
 """
     P, Q = poles(u)
 
@@ -242,6 +339,27 @@ box(ixs::AbstractMatrix{Bool}) = box(keys(ixs)[ixs])
 function slice(u)
     j = N÷2
     sum(u[j:j+1,:], dims=1)[:]/2
+end
+
+"""
+    unroll(θs)
+
+Return θs adjusted mod 2π to be as continuous as possible
+"""
+function unroll(θ)
+    Θ = similar(θ)
+    Θ[1] = θ[1]
+    poff = 0.0
+    for j = 2:length(θ)
+        jump = θ[j] - θ[j-1]
+        if jump > π
+            poff -= 2π
+        elseif jump < -π
+            poff += 2π
+        end
+        Θ[j] = θ[j] + poff
+    end
+    Θ
 end
 
 cscl(z) = (abs(z)>0) ? z/abs(z)*log(10,abs(z)) : Complex(1e-10)

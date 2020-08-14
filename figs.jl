@@ -70,23 +70,6 @@ function bphase(S)
     [0; bp]
 end
 
-function unroll(θ)
-    # reverse modulo 2π
-    Θ = similar(θ)
-    Θ[1] = θ[1]
-    poff = 0.0
-    for j = 2:length(θ)
-        jump = θ[j] - θ[j-1]
-        if jump > π
-            poff -= 2π
-        elseif jump < -π
-            poff += 2π
-        end
-        Θ[j] = θ[j] + poff
-    end
-    Θ
-end
-
 "Wirtinger derivatives"
 function widir(u, zz=[]; ms=0.5, rel=false, rad=5, mask=ones(size(u)))
     P, Q = poles(u)
@@ -110,6 +93,7 @@ unit(z) = z/abs(z)
 
 # Plots and portraits are a bit wierd with pixel arrays
 implot(x,y,image) = plot(x, y, image,
+    xlims=(x[1], x[end]), ylims=(y[1], y[end]),
     yflip=false, aspect_ratio=1, framestyle=:box, tick_direction=:out)
 implot(image) = implot(y,y,image)
 saneportrait(u) = reverse(portrait(u), dims=1)
