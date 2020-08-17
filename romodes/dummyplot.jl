@@ -8,8 +8,6 @@ l = 20.0	# maximum domain size
 C = NaN
 JJ = 11	# snapshots at S[JJ]
 
-pcim = 0.07897074085948004
-
 include("../system.jl")
 
 y = [-10, 10]	# Plots.jl pixel offset
@@ -35,9 +33,6 @@ function plot_trace(z, col)
     scatter!(real.(z[1:1]), imag.(z[1:1]), ms=5, mc=col, msw=0)
 end
 
-# 72 dpi is 1pt pixels
-# popts = (xlims=(-5,5), ylims=(-5,5), size=(200,200), dpi=72)
-
 PA = plot(zplot(S1q[JJ]), xshowaxis=false; imopts...)
 plot_trace(zz[aa .≤ 2π], :white)
 savefig(PA, "../figs/resp200702a.pdf")
@@ -52,33 +47,37 @@ for (θ, s) = [(0, "0"), (π/2, "pi/2"), (π, "pi"), (-π/2, "3pi/2")]
 end
 savefig(PB, "../figs/resp200702b.pdf")
 
-pp1 = pci(S1q[1:JJ])/h^2
+pp1 = -pci(S1q[1:JJ])/h^2
+pp2 = -pci(imprint.(angle.(zz[1:JJ])))/h^2
+
+cl = minimum(min.(pp1, pp2))
+ch = maximum(max.(pp1, pp2))
+
+@info "Color bounds" low=cl high=ch
+
+pcim = max(-cl, ch)
+
 PC = plot(sense_portrait(pp1,pcim) |> implot, aspect_ratio=1; imopts...)
 plot_trace(zz[1:JJ], :black)
 savefig(PC, "../figs/resp200702c.pdf")
 
-pp2 = -pci(imprint.(angle.(zz[1:JJ])))/h^2
 PD = plot(sense_portrait(pp2,pcim)  |> implot,
     aspect_ratio=1, yshowaxis=false; imopts...)
 plot_trace(zz[1:JJ], :black)
 savefig(PD, "../figs/resp200702d.pdf")
 
-cl = minimum(min.(pp1, pp2))
-ch = maximum(max.(pp1, pp2))
-
-@info "Color bounds" low=cl high=ch pcim
-
 pr = range(cl,ch, length=50)
 PG = plot(pr, pr, sense_portrait(pr'), aspect_ratio=1/7, xshowaxis=false, yshowaxis=false,
-    framestyle=:box,size=(200,55), dpi=72)
+    size=(200,55), dpi=72)
+ylims!(pr[1], pr[end])
 savefig(PG, "../figs/resp200724c.pdf")
 
 nin(u) = sum(abs2.(u[r .< R]))
 
 S1t *= Ω/2π
 PE = plot()
-PE = scatter!(PE, S1t[1:4:end], bphase(S1q[1:4:end])./(2π*nin(φ)); bpsty..., sqopts...)
-ylims!(0,5)
+PE = scatter!(PE, S1t[1:4:end], -bphase(S1q[1:4:end])./(2π*nin(φ)); bpsty..., sqopts...)
+# ylims!(0,5)
 plot!([S1t[JJ], S1t[JJ]], [ylims()[1], 1.5]; snapsty...)
 plot!(S1t, aa./2π; insty...)
 scatter!(S1t[1:4:end], -bphase(imprint.(angle.(zz[1:4:end])))./(2π*nin(ψ)); impsty...)

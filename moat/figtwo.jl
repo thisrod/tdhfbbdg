@@ -17,8 +17,6 @@ j1 = 3*7
 j2 = 3*18
 j3 = 3*35
 
-pcim = 0.25842681465271744
-
 ins = [find_vortex(q) for q in Su]
 outs = [find_moat(q) for q in Su]
 Rv = mean(abs.(ins))
@@ -51,8 +49,15 @@ PC = plot(zplot(Su[j3]), xshowaxis=false, yshowaxis=false; imopts...)
 crumbs!(j3)
 savefig(PC, "../figs/resp200716c.pdf")
 
-pp1 = pci(Su[1:j1])/h^2
-PD = plot(sense_portrait(pp1, pcim) |> implot,
+pp1 = -pci(Su[1:j1])/h^2
+pp3 = -pci(Su[1:j3])/h^2
+
+cl = minimum(min.(pp1, pp3))
+ch = maximum(max.(pp1, pp3))
+
+@info "Color bounds" low=cl high=ch
+
+PD = plot(sense_portrait(pp1, -cl) |> implot,
     aspect_ratio=1; imopts...)
 crumbs!(j1, :black)
 savefig(PD, "../figs/resp200716d.pdf")
@@ -62,16 +67,10 @@ PE = plot(pci(Su[1:j2]) |> sense_portrait |> implot,
 crumbs!(j2, :black)
 savefig(PE, "../figs/resp200716e.pdf")
         
-pp3 = pci(Su[1:j3])/h^2
-PF = plot(sense_portrait(pp3, pcim) |> implot,
+PF = plot(sense_portrait(pp3, -cl) |> implot,
     aspect_ratio=1, yshowaxis=false; imopts...)
 crumbs!(j3, :black)
 savefig(PF, "../figs/resp200716f.pdf")
-
-cl = minimum(min.(pp1, pp3))
-ch = maximum(max.(pp1, pp3))
-
-@info "Color bounds" low=cl high=ch pcim
 
 pr = range(cl,ch, length=50)
 PH = plot(pr, pr, sense_portrait(pr'), aspect_ratio=1/7, xshowaxis=false, yshowaxis=false,

@@ -1,4 +1,5 @@
 # Moat potential
+# Plots in mufigs.jl
 
 using DifferentialEquations, JLD2
 

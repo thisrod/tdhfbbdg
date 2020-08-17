@@ -4,7 +4,7 @@ using DifferentialEquations, JLD2
 
 @load "mod.jld2"
 
-jj = 9	# snapshot index
+jj = 7	# snapshot index
 
 include("../system.jl")
 include("../figs.jl")
@@ -40,19 +40,19 @@ function derplot(qs...)
     xlims!(R+hh[1], R+hh[end])
     for q in qs
         plot!(P1, rr[rix], angle.(q[mx])[rix])
-        plot!(P2, R.+hh, √2*[Df(q, R+a) for a in hh]/n₀)
+        plot!(P2, R.+hh, √2*[Df(q, R+a) for a in hh]/n₀/100)
     end
     P1,P2
 end
 
-PA = plot(Su[jj] |> zplot; imopts...)
+PA = plot(Su[jj+1] |> zplot; imopts...)
 savefig("../figs/resp200805a.pdf")
 
-PB = plot(pci(Su[1:jj]) |> sense_portrait |> implot,
+PB = plot(pci(Su[1:jj+1]) |> sense_portrait |> implot,
     aspect_ratio=1; imopts...)
 savefig("../figs/resp200805b.pdf")
 
-PC, PD = derplot(Su[jj:-1:jj-2]...)
+PC, PD = derplot(Su[jj+1:-1:jj-1]...)
 
 PC = plot(PC; ms=2, msw=0, xticks=[2.4, 2.6, 2.8], recopts...)
 savefig("../figs/resp200805c.pdf")
@@ -61,7 +61,10 @@ PD = plot(PD; ms=2, msw=0, xticks=[2.4, 2.6, 2.8], recopts...)
 savefig("../figs/resp200805d.pdf")
 
 nin = sum(@. abs2(Su[1])*(r<R))
-PE = plot([St[jj], St[jj]]/2π, [0.15, 0.45]; snapsty...)
+PE = plot()
+for j = jj-1:jj+1
+    plot!([St[j], St[j]]/2π, [0.15, 0.45]; snapsty...)
+end
 plot!(St/√2/π, μoff.*St/2π; insty..., sqopts...)
 scatter!(St/√2/π, bphase(Su)/2π/nin; bpsty...)
 savefig("../figs/resp200805e.pdf")
