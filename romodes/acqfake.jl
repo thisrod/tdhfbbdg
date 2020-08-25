@@ -29,7 +29,6 @@ rr = r_TF*collect(0.1:0.05:0.95)
 gp = Float64[]	# GPE
 ip = Float64[]	# imprinted
 ss = Float64[]	# end radii
-nv = Float64[]	# nin minus core
 for r₀ = rr
     Ω, q = orbit_frequency(r₀, 1e-3)
     P = ODEProblem((ψ,_,_)->-1im*(L(ψ)-μ*ψ), q, (0.0,0.15/Ω))
@@ -40,7 +39,6 @@ for r₀ = rr
     push!(ss, abs(r₁))
     push!(gp, berry_diff(S[1], S[2])/θ)
     push!(ip, berry_diff(imprint_phase(S[1]), imprint_phase(S[2]))/θ)
-    push!(nv, sum(@. abs2(q)*(r<abs(r₁))))
 end
 
 PF = plot()

@@ -78,7 +78,7 @@ S1t *= Ω/2π
 PE = plot()
 PE = scatter!(PE, S1t[1:4:end], -bphase(S1q[1:4:end])./(2π*nin(φ)); bpsty..., sqopts...)
 # ylims!(0,5)
-plot!([S1t[JJ], S1t[JJ]], [ylims()[1], 1.5]; snapsty...)
+plot!([S1t[JJ], S1t[JJ]], [-2, 1.5]; snapsty...)
 plot!(S1t, aa./2π; insty...)
 scatter!(S1t[1:4:end], -bphase(imprint.(angle.(zz[1:4:end])))./(2π*nin(ψ)); impsty...)
 xticks!(0:0.2:1.2)

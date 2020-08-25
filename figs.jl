@@ -23,7 +23,7 @@ recopts = (popts..., size=(100,200))
 function sense_portrait(xs, mag=maximum(abs, xs))
     C = cgrad([:cyan, :white, :red])
     # TODO stability at |x| ≈ mag
-    xs .|> (x -> C[(x+mag)/2mag])
+    [C[iszero(mag) ? 1/2 : (x+mag)/2mag] for x in xs]
 end
 
 function show_vortex!(u, clr=:white)
