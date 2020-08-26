@@ -2,23 +2,25 @@
 
 using LinearAlgebra, Plots, Optim, DifferentialEquations, Interpolations
 
-using Revise
 using Superfluids
 
-default(:legend, :none)
+Plots.default(:legend, :none)
 
-gas = Superfluid{2}(3000, (x,y)->x^2+y^2)
-xy = FDDiscretisation(gas, 100, 20)
+Superfluids.default!(Superfluid{2}(3000, (x,y)->x^2+y^2))
+Superfluids.default!(FDDiscretisation(150, 14))
+Superfluids.default!(:g_tol, 1e-3)
+
 dt = 1e-4
 R = 1.4095863217731164	# orbit radius from dummyplot
 
-z = argand(xy)
+z = argand()
 r = abs.(z)
 
 struct NormVort <: Manifold
    ixs
    o
-   function NormVort(d::Discretisation, r::Number)
+   function NormVort(r::Number)
+        d = Superfluids.default(:discretisation)
         z = argand(d)
         ixs = sort(eachindex(z), by=j->abs(z[j]-r))
         ixs = ixs[1:4]
@@ -41,7 +43,7 @@ Optim.retract!(M::NormVort, q) =
 Optim.project_tangent!(M::NormVort, dq, q) =
     Optim.project_tangent!(Sphere(), prjct!(M, dq),q)
 
-_, _, L, H = Superfluids.operators(gas, xy)
+L, H = Superfluids.operators(:L, :H)
 
 relaxed_op(R, Ω, g_tol) = relax(R, Ω, g_tol).minimizer
 
@@ -49,8 +51,8 @@ relax(R, Ω, g_tol) =
     optimize(
         ψ -> dot(ψ,H(ψ,Ω)) |> real,
         (buf,ψ) -> copyto!(buf, 2*L(ψ,Ω)),
-        (z.-R).*cloud(xy),
-        GradientDescent(manifold=NormVort(xy, R)),
+        normalize((z.-R).*cloud()),
+        ConjugateGradient(manifold=NormVort(R)),
         Optim.Options(iterations=1000, g_tol=g_tol, allow_f_increases=true)
     )
 
@@ -60,18 +62,14 @@ function rsdl(q, Ω)
     norm(Lq-μ*q)
 end
 
-function p(u)
-    plot(xy, u, xlims=(real(R)-0.5, real(R)+0.5), ylims=(-0.5, 0.5))
-    scatter!([real(R)], [imag(R)], mc=:white)
-end
-
 # from ../romodes/acqfake.jl
 
-ψ = steady_state(gas, xy; g_tol=1e-3)
+ψ = steady_state()
 μ = dot(L(ψ), ψ) |> real
 R_TF = sqrt(μ)
 
 # interpolate nin
+xy = Superfluids.default(:discretisation)
 y = xy.h/2*(1-xy.n:2:xy.n-1)
 f = CubicSplineInterpolation((y, y), ψ)
 yy = range(y[1], y[end]; length=5*xy.n)
@@ -80,12 +78,12 @@ rs = hypot.(yy', yy)
 ψ ./= norm(ψ)
 nin = [sum(@. abs2(ψ)*(rs<s)) for s=0:xy.h/5:R_TF]
 
-rr = range(xy.h, R_TF, length=6)
+rr = range(xy.h, R_TF, length=20)
 
 berry_diff(u,v) = imag(sum(conj(v).*u))
 
 function imprint_phase(u)
-    r₀ = find_vortex(xy, u)
+    r₀ = find_vortex(u)
     @. abs(u)*(z-r₀)/abs(z-r₀)
 end
 
@@ -95,16 +93,27 @@ ss = Float64[]	# end radii
 nv = Float64[]	# nin minus core
 qs = []
 ws = Float64[]
+hs = Float64[]
+
+s1 = []
+s2 = []
+
 for r₀ = rr
-    Ω = optimize(w -> rsdl(relaxed_op(r₀, w, 1e-3), w), 0.0, 0.6, abs_tol=1e-2).minimizer
-    q = relaxed_op(r₀, Ω, 1e-2)
+    g_tol = (r₀<R_TF/4) ? 1e-6 : 1e-4
+    Ω = optimize(w -> rsdl(relaxed_op(r₀, w, g_tol), w), 0.0, 0.6, abs_tol=g_tol).minimizer
+    @info "Steady state"
+    q = relaxed_op(r₀, Ω, g_tol)
     push!(qs, q)
     push!(ws, Ω)
     P = ODEProblem((ψ,_,_)->-1im*(L(ψ)-μ*ψ), q, (0.0,0.15/Ω))
     S = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.15/Ω)
-    r₁ = find_vortex(xy, S[1])
-    r₂ = find_vortex(xy, S[2])
+    @info "Rotation"
+    push!(s1, S[1])
+    push!(s2, S[2])
+    r₁ = find_vortex(S[1])
+    r₂ = find_vortex(S[2])
     θ = r₂*conj(r₁) |> angle
+    push!(hs, θ)
     push!(ss, abs(r₁))
     push!(gp, berry_diff(S[1], S[2])/θ)
     push!(ip, berry_diff(imprint_phase(S[1]), imprint_phase(S[2]))/θ)
@@ -135,3 +144,5 @@ scatter!(ss/R_TF, -gp; bpsty...)
 xlims!(0,1)
 xticks!([0, 0.5, 1])
 savefig(PF, "../figs/resp200812e.pdf")
+
+# plot(scatter(ss/R_TF, -gp), scatter(ss/R_TF, hs), layout=@layout [a;b])

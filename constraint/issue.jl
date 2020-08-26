@@ -7,7 +7,7 @@ default(:legend, :none)
 C = 3000
 N = 100
 h = 0.19801980198019803
-y = h/2*(1-N:2:N-1);  x = y';  z = Complex.(x,y)
+x = h/2*(1-N:2:N-1);  y = x';  z = Complex.(x,y)
 r = abs.(z)
 V = abs2.(z)
 
@@ -21,7 +21,7 @@ end
 
 T(ψ) = -(∂²*ψ+ψ*∂²')/2
 U(ψ) = C/h*abs2.(ψ)
-J(ψ) = -1im*(x.*(∂*ψ)-y.*(ψ*∂'))
+J(ψ) = -1im*(x.*(ψ*∂')-y.*(∂*ψ))
 L(ψ,Ω) = L(ψ)-Ω*J(ψ)
 L(ψ) = T(ψ)+(V+U(ψ)).*ψ
 H(ψ,Ω) = H(ψ)-Ω*J(ψ)
@@ -53,8 +53,9 @@ Optim.retract!(M::NormVort, q) =
 Optim.project_tangent!(M::NormVort, dq, q) =
     Optim.project_tangent!(Sphere(), project!(M, dq),q)
 
-function relax(rv, Ω, g_tol, mtype)
+function relax(rv, Ω, g_tol, mtype, nlz=true)
     cloud = @.cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
+    nlz && normalize!(cloud)
     optimize(
         ψ -> dot(ψ,H(ψ,Ω)) |> real,
         (buf,ψ) -> copyto!(buf, 2*L(ψ,Ω)),
@@ -64,10 +65,23 @@ function relax(rv, Ω, g_tol, mtype)
     )
 end
 
+function relax2(rv, Ω, g_tol, mtype)
+    cloud = @.cos(π*x/(N+1)/h)*cos(π*y/(N+1)/h) |> Complex
+    cloud .*= (z.-rv)
+    normalize!(cloud)
+    optimize(
+        ψ -> dot(ψ,H(ψ,Ω)) |> real,
+        (buf,ψ) -> copyto!(buf, 2*L(ψ,Ω)),
+        cloud,
+        mtype(manifold=NormVort(rv)),
+        Optim.Options(iterations=1000, g_tol=g_tol, allow_f_increases=true)
+    )
+end
+
 implot(x,y,image) = plot(x, y, image,
     xlims=(x[1], x[end]), ylims=(y[1], y[end]),
     yflip=false, aspect_ratio=1, framestyle=:box, tick_direction=:out)
-implot(image) = implot(y,y,image)
+implot(image) = implot(x,x,image)
 saneportrait(u) = reverse(portrait(u), dims=1)
 zplot(u) = implot(saneportrait(u).*abs2.(u)/maximum(abs2,u))
 argplot(u) = implot(saneportrait(u))
@@ -75,3 +89,8 @@ zplot(u::Matrix{<:Real}) = zplot(u .|> Complex)
 argplot(u::Matrix{<:Real}) = argplot(u .|> Complex)
 zplot(u::BitArray{2}) = zplot(u .|> Float64)
 twoplot(u) = plot(zplot(u), argplot(u))
+
+# Normalizing the cloud, before injecting the vortex, shouldn't help
+# relax2(3.0, 0.4, 0.01, ConjugateGradient)
+# relax(2.5, 0.4, 0.01, ConjugateGradient)
+# relax(2.5, 0.4, 0.01, ConjugateGradient, false)
