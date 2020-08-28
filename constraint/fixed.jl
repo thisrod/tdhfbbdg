@@ -2,12 +2,13 @@
 
 using LinearAlgebra, Plots, Optim, DifferentialEquations, Interpolations
 
+using Revise
 using Superfluids
 
 Plots.default(:legend, :none)
 
 Superfluids.default!(Superfluid{2}(3000, (x,y)->x^2+y^2))
-Superfluids.default!(FDDiscretisation(150, 14))
+Superfluids.default!(FDDiscretisation(200, 14))
 Superfluids.default!(:g_tol, 1e-3)
 
 dt = 1e-4
@@ -78,7 +79,8 @@ rs = hypot.(yy', yy)
 ψ ./= norm(ψ)
 nin = [sum(@. abs2(ψ)*(rs<s)) for s=0:xy.h/5:R_TF]
 
-rr = range(xy.h, R_TF, length=20)
+rr = range(0.0, R_TF, length=20)
+rr = rr[2:end]
 
 berry_diff(u,v) = imag(sum(conj(v).*u))
 
@@ -98,15 +100,15 @@ hs = Float64[]
 s1 = []
 s2 = []
 
-for r₀ = rr
-    g_tol = (r₀<R_TF/4) ? 1e-6 : 1e-4
+for r₀ = rr[1:length(rr)÷2]
+    g_tol, h = (r₀<R_TF/4) ? (1e-7, 0.6) : (1e-5, 0.15)
     Ω = optimize(w -> rsdl(relaxed_op(r₀, w, g_tol), w), 0.0, 0.6, abs_tol=g_tol).minimizer
     @info "Steady state"
     q = relaxed_op(r₀, Ω, g_tol)
     push!(qs, q)
     push!(ws, Ω)
-    P = ODEProblem((ψ,_,_)->-1im*(L(ψ)-μ*ψ), q, (0.0,0.15/Ω))
-    S = solve(P, RK4(), adaptive=false, dt=dt, saveat=0.15/Ω)
+    P = ODEProblem((ψ,_,_)->-1im*(L(ψ)-μ*ψ), q, (0.0,h/Ω))
+    S = solve(P, RK4(), adaptive=false, dt=dt, saveat=h/Ω)
     @info "Rotation"
     push!(s1, S[1])
     push!(s2, S[2])
@@ -138,11 +140,11 @@ recopts = (popts..., size=(100,200))
 
 PF = plot()
 plot!([R/R_TF, R/R_TF], [0.0, 0.4]; snapsty..., sqopts)
-plot!(0:xy.h/5R_TF:1, nin,ms=1.5; insty...)
+plot!(0:xy.h/5R_TF:1, nin; insty...)
 scatter!(ss/R_TF, -ip; impsty...)
 scatter!(ss/R_TF, -gp; bpsty...)
 xlims!(0,1)
 xticks!([0, 0.5, 1])
-savefig(PF, "../figs/resp200812e.pdf")
+# savefig(PF, "../figs/resp200812e.pdf")
 
 # plot(scatter(ss/R_TF, -gp), scatter(ss/R_TF, hs), layout=@layout [a;b])

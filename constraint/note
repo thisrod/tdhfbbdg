@@ -1,0 +1,5 @@
+Here's a teaser.  The figure shows the energy landscape for a vortex orbiting in a harmonic trap at radius r_v, in a frame rotating at frequency Ω from 0.0 to 0.6.  The energies are referred to the vortex free state in the same rotating frame.  The graph goes wonky at large r_v and extreme frequencies, where the relaxed state can lose its vortex or gain an extra one.
+
+It's hard to relax such a vortex into a circular orbit.  The conventional wisdom is that there is a shallow energy minimum around stable radius, so it's hard to hit.
+
+The figure reveals that it's even worse than that.  The curves with stable orbits, such as Ω = 0.3 and r_v around 2.5, don't have energy minima.  Instead there's a saddle point, with the stable radius as an energy maximum.  No wonder that's hard to hit: you have to seed the vortex at a radius where it relaxes onto the saddle point, precisely enough to trick a first-order optimiser into thinking that it's found an energy minimum.

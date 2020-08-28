@@ -8,8 +8,7 @@ using Superfluids
 default(:legend, :none)
 
 Superfluids.default!(Superfluid{2}(3000, (x,y)->x^2+y^2))
-Superfluids.default!(FDDiscretisation(100, 20))
-
+Superfluids.default!(FDDiscretisation(110, 20))
 
 z = argand()
 r = abs.(z)
@@ -70,45 +69,86 @@ relaxed_orbit(R, g_tol) =
     optimize(w->rsdl(relaxed_op(R, w, g_tol), w), 0.0, 0.6)
 
 ws = 0:0.1:1
-qs = [relaxed_op(1.5, w, 1e-3) for w in ws]
-rdls = [rsdl(q, w) for (q, w) in zip(qs, ws)]
+
+# qs = [relaxed_op(1.5, w, 1e-3) for w in ws]
+# rdls = [rsdl(q, w) for (q, w) in zip(qs, ws)]
 
 function p(u)
     plot(Superfluids.default(:discretisation), u)
     scatter!([-1.5, 1.5], [0, 0], mc=:white, xlims=(-5,5), ylims=(-5,5))
 end
 
-Ω = relaxed_orbit(1.7, 1e-3).minimizer
-ψ = relaxed_op(1.7, Ω, 1e-3)
+Ω = relaxed_orbit(1.7, 1e-6).minimizer
+ψ = relaxed_op(1.7, Ω, 1e-6)
 
+# Find Kelvin mode
+# Need to use SM, so sparse matrices don't help (but BandedBlockBanded might).
 
-# Find Kelvin mode.  Need to use SM, so sparse matrices don't help
+B = Superfluids.BdGmatrix(Superfluids.default(:superfluid), Superfluids.default(:discretisation), Ω, ψ)
+ws,uvs,nconv,niter,nmult,resid = eigs(B; nev=16, which=:SM) 
 
-μ = sum(conj.(ψ).*L(ψ)) |> real
-
-function op2mat(f)
-    M = similar(z,length(z),length(z))
-    u = similar(z)
-    for j = eachindex(u)
-        u .= 0
-        u[j] = 1
-        M[:,j] = f(u)[:]
-    end
-    M
-end
-
-C = Superfluids.default(:superfluid).C
-h = Superfluids.default(:discretisation).h
-T, V, U, J = Superfluids.operators(:T, :V, :U, :J)
-
-BdGmat = [
-    op2mat(φ->T(φ)+(V+2U(ψ)).*φ-Ω*J(φ)-μ*φ)    op2mat(φ->@. -C/h*ψ^2*φ);
-    op2mat(φ->@. C/h*conj(ψ)^2*φ)    op2mat(φ->-T(φ)-(V+2U(ψ)).*φ-Ω*J(φ)+μ*φ)
-];
-
-
-
-ωs,uvs,nconv,niter,nmult,resid = eigs(BdGmat; nev=16, which=:SM) 
-
+N = Superfluids.default(:discretisation).n
 umode(j) = reshape(uvs[1:N^2, j], N, N)
 vmode(j) = reshape(uvs[N^2+1:end, j], N, N)
+
+@info "max imag frequency" iw=maximum(imag, ws)
+ws = real(ws)
+ixs = findall(ws .> 0)
+ws = ws[ixs]
+uvs = uvs[:,ixs]
+
+J = Superfluids.operators(:J)[]
+jj = [dot(J(umode(k)), umode(k)) |> real for k = eachindex(ws)]
+
+PA = p(ψ)
+savefig("../figs/resp200828a.pdf")
+
+PB = scatter(jj, ws)
+scatter!(jj[2:2], ws[2:2], mc=:yellow, msc=:royalblue, msw=2)
+scatter!(jj[3:3], ws[3:3], mc=:lightgreen)
+xlabel!("J for u mode")
+ylabel!("w (uncertain units)")
+savefig("../figs/resp200828b.pdf")
+
+PC = plot(p(umode(1)), p(vmode(1)))
+title!("zero mode")
+savefig("../figs/resp200828c.pdf")
+
+PD = plot(p(umode(2)), p(vmode(2)))
+title!("yellow/blue KT")
+savefig("../figs/resp200828d.pdf")
+
+PE = plot(p(umode(3)), p(vmode(3)))
+title!("green KT")
+savefig("../figs/resp200828e.pdf")
+
+uu = exp.(2π*1im*(0:0.05:1))
+
+"pci([q1, q2, ...]) pointwise Berry phase after sequence of states"
+function pci(S)
+    if length(S) == 1
+        zero(S[])
+    else
+        [@. imag(conj(S[j+1])*S[j]) for j = 1:length(S)-1] |> sum
+    end
+end
+
+uvs[:,2] ./= √(norm(umode(2))^2 - norm(vmode(2))^2)
+qs = [ψ + 0.07u*umode(2) + 0.07conj(u)*vmode(2) for u in uu]
+PF = @animate for j = 2:length(uu)
+    plot(
+        p(qs[j]),
+        p(pci(qs[1:j]))
+    )
+end
+gif(PF, "../figs/resp200828f.gif", fps=2)
+
+uvs[:,3] ./= √(norm(umode(3))^2 - norm(vmode(3))^2)
+qs = [ψ + 0.07u*umode(3) + 0.07conj(u)*vmode(3) for u in uu]
+PG = @animate for j = 2:length(uu)
+    plot(
+        p(qs[j]),
+        p(pci(qs[1:j]))
+    )
+end
+gif(PG, "../figs/resp200828g.gif", fps=2)
