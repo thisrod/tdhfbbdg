@@ -101,6 +101,7 @@ s1 = []
 s2 = []
 
 for r₀ = rr[1:length(rr)÷2]
+    # TODO save at halftime and check consistency between halves
     g_tol, h = (r₀<R_TF/4) ? (1e-7, 0.6) : (1e-5, 0.15)
     Ω = optimize(w -> rsdl(relaxed_op(r₀, w, g_tol), w), 0.0, 0.6, abs_tol=g_tol).minimizer
     @info "Steady state"
