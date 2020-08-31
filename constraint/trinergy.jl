@@ -13,7 +13,6 @@ d = FDDiscretisation(100, 20)
 Superfluids.default!(d)
 Superfluids.default!(:g_tol, 1e-6)
 
-z = argand()
 L, H = Superfluids.operators(:L, :H)
 
 ψ = steady_state()
