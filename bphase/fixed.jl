@@ -56,6 +56,8 @@ qs = similar(rr, Any)
 s1 = similar(rr, Any)
 s2 = similar(rr, Any)
 
+if false
+
 Ω = 0.3
 
 Threads.@threads for j = eachindex(rr)
@@ -105,3 +107,5 @@ xticks!([0, 0.5, 1])
 savefig(PF, "resp200812e.pdf")
 
 plot(scatter(ss/R_TF, -gp), scatter(ss/R_TF, hs), layout=@layout [a;b])
+
+end
