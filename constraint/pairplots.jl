@@ -19,7 +19,7 @@ N = d.n
 us = [reshape(uvs[1:N^2, j], N, N) for j = axes(uvs,2)]
 vs = [reshape(uvs[N^2+1:end, j], N, N) for j = axes(uvs,2)]
 
-J = Superfluids.operators(:J)[]
+J = Superfluids.operators(s,d,:J) |> only
 jj = [dot(J(us[k]), us[k]) |> real for k = eachindex(ws)]
 
 PA = plot(d, q)
@@ -55,7 +55,10 @@ function pci(S)
     end
 end
 
-uvs[:,2] ./= √(norm(umode(2))^2 - norm(vmode(2))^2)
+let j = 2, w = √(sum(abs2, us[j]) - sum(abs2, vs[j]))
+    us[j] ./= w
+    vs[j] ./= w
+end
 qs = [ψ + 0.07u*umode(2) + 0.07conj(u)*vmode(2) for u in uu]
 PF = @animate for j = 2:length(uu)
     plot(
@@ -65,12 +68,15 @@ PF = @animate for j = 2:length(uu)
 end
 gif(PF, "../figs/resp200828f.gif", fps=2)
 
-uvs[:,3] ./= √(norm(umode(3))^2 - norm(vmode(3))^2)
-qs = [ψ + 0.07u*umode(3) + 0.07conj(u)*vmode(3) for u in uu]
+let j = 3, w = √(sum(abs2, us[j]) - sum(abs2, vs[j]))
+    us[j] ./= w
+    vs[j] ./= w
+end
+qs = [q + ee*u*us[3] + ee*conj(u)*vs[3] for u in uu]
 PG = @animate for j = 2:length(uu)
     plot(
         p(qs[j]),
         p(pci(qs[1:j]))
     )
 end
-gif(PG, "../figs/resp200828g.gif", fps=2)
+gif(PG, "../figs/bar.gif", fps=2)
