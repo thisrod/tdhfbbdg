@@ -1,35 +1,37 @@
-# Orbiting vortex plots
+# Orbiting vortex plots.  See also fixed.jl
 
-using LinearAlgebra, Plots
+using LinearAlgebra, Plots, ComplexPhasePortrait, Colors
+
+using Statistics: mean
 
 using Revise
 using Superfluids
+using Superfluids: unroll
 
 Plots.default(:legend, :none)
 
-Superfluids.default!(Superfluid{2}(500, (x,y)->(x^2+y^2)/2))
-Superfluids.default!(FDDiscretisation{2}(200, 20/199))
-Superfluids.default!(:g_tol, 1e-6)
+s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
+d = FDDiscretisation{2}(200, 20/199)
+L = Superfluids.operators(s,d,:L) |> only
 
 R = 1.5	# orbit radius
 
 JJ = 11	# snapshots at S[JJ]
 
 Ω, q = relax_orbit(s, d, R, Ωs=[0.1, 0.3], g_tol=1e-6, iterations=1000)
+ψ = steady_state(s,d; Ω)
+
 tt = range(0.0, 2π/Ω, length=16)
 qq = [q]
+μ = dot(ψ,L(ψ)) |> real	# lab frame
 for j = 2:length(tt)
-    push!(qq, Superfluids.solve(s, d, qq[j-1], (tt[j-1], tt[j]); μ))
+    push!(qq, Superfluids.integrate(s, d, qq[j-1], (tt[j-1], tt[j]); μ))
 end
 
-@load "acqorbit.jld2" source Ω φ ψ
-@load "ss.jld2" S1t S1q
 
-include("../figs.jl")
-
-zz = [find_vortex(S1q[j]) for j = eachindex(S1q)]
-R = mean(abs.(zz))
-aa = unroll(@. angle(zz) - angle(zz[1]))
+zz = find_vortex.(qq)
+R = mean(abs, zz)
+aa = Superfluids.unroll(@. angle(zz) - angle(zz[1]))
 
 function imprint(θ)
     # TODO match vortex core radius
@@ -43,14 +45,33 @@ function plot_trace(z, col)
     scatter!(real.(z[1:1]), imag.(z[1:1]), ms=5, mc=col, msw=0)
 end
 
-PA = plot(zplot(S1q[JJ]), xshowaxis=false; imopts...)
+# Colors for Berry phase plots
+snapsty = RGB(0.3,0,0)
+bpsty, impsty, insty, outsty, nsty =
+    distinguishable_colors(5+3, [snapsty, RGB(1,1,1), RGB(0,0,0)])[4:end]
+bpsty = (ms=2, mc=bpsty, msc=0.5bpsty)
+impsty = (ms=2, mc=impsty, msc=0.5impsty)
+insty = (lc=insty,)
+outsty = (lc=outsty,)
+nsty = (lc=nsty,)
+snapsty = (lc=snapsty, lw=0.5)
+
+popts = (dpi=72, leg=:none, framestyle=:box, fontfamily="Latin Modern Sans")
+imopts = (popts..., xlims=(-5,5), ylims=(-5,5), size=(200,200))
+sqopts = (popts..., size=(200,200))
+recopts = (popts..., size=(100,200))
+
+z = Superfluids.argand(d)
+r = abs.(z)
+
+PA = plot(d, qq[JJ], xshowaxis=false; imopts...)
 plot_trace(zz[aa .≤ 2π], :white)
 savefig(PA, "../figs/resp200702a.pdf")
 
-PB = plot(zplot(imprint(angle(zz[JJ]))), xshowaxis=false, yshowaxis=false; imopts...)
+PB = plot(d, imprint(angle(zz[JJ])), xshowaxis=false, yshowaxis=false; imopts...)
 plot_trace(zz[aa .≤ 2π], :white)
-ixs = @. 4.2-h<r<4.2+h
-rr = S1q[JJ][ixs]
+ixs = @. 4.2-d.h<r<4.2+d.h
+rr = qq[JJ][ixs]
 for (θ, s) = [(0, "0"), (π/2, "pi/2"), (π, "pi"), (-π/2, "3pi/2")]
     z1 = z[ixs][argmin(@. abs(angle(rr)-θ))]
     annotate!([real(z1)], [imag(z1)], text(s, :white, 9))

@@ -6,7 +6,6 @@ using Revise
 using Superfluids
 
 default(:legend, :none)
-default(:aspect_ratio, 1)
 
 function zpoly(z,n,m)
     (abs(m) > n || isodd(n-abs(m)) || abs(z)>1) && return zero(z)
@@ -47,13 +46,18 @@ q = steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=1000)
 
 B = Superfluids.BdGmatrix(s,d,Ω,q)
 ew, ev = eigs(B, nev=20, which=:SM)
+ws, us, vs = Superfluids.bdg_output(d,ew,ev)
 
 l = d.n*d.h/2
-z = argand(d)
+z = Superfluids.argand(d)
 
-u = normalize(us[2])
-cs = [dot(normalize(zpoly.(z/l,n,m)), u)
-    for n = 0:50 for m = -n:2:n]
+ixs = [(n,m) for n = 0:50 for m = -n:2:n]
+
+u = normalize(us[1])
+cs = [dot(normalize(zpoly.(z/l,n,m)), u) for (n, m) in ixs]
+
+# scatter([ix[2] for ix in ixs], abs2.(cs), yscale=:log10, ms=2, msw=0, mc=:black, xlabel="m")
+
 ds = [dot(normalize(zpoly.(z/l,n,m)), u)
     for n = 0:2:100 for m = -2:2:6]
 filter!(d->!isnan(d), ds)

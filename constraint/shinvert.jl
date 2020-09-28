@@ -1,12 +1,12 @@
 # shift and invert
 
-using LinearAlgebra, Plots, Optim, Arpack, LinearMaps
+using LinearAlgebra, Plots, Optim, Arpack, LinearMaps, IterativeSolvers
 
 using Revise
 using Superfluids
 
 default(:legend, :none)
-default(:aspect_ratio, 1)
+# default(:aspect_ratio, 1)
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
 d = FDDiscretisation{2}(30, 15/29)
@@ -41,6 +41,8 @@ q = steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=1000)
 # ew, ev = eigs(B, nev=20, which=:SM)
 
 B = Superfluids.bdg_operator(s,d,q,Ω)
+Bmat = Superfluids.BdGmatrix(s,d,Ω,q)
+
 Bop = LinearMap{Complex{Float64}}(2d.n^2) do uv
     u = uv[1:d.n^2]
     u = reshape(u, d.n, d.n)
@@ -49,8 +51,15 @@ Bop = LinearMap{Complex{Float64}}(2d.n^2) do uv
     uu, vv = B(u,v)
     [uu[:]; vv[:]]
 end
+
+Bop = LinearMap{Complex{Float64}}(uv -> Bmat*uv, 2d.n^2)
 # use pairplots.jl
 
 LinearAlgebra.factorize(A::LinearMaps.LinearMap) = A
+Base.:\(A::LinearMaps.LinearMap, b::AbstractVector) =
+    IterativeSolvers.idrs(A, Array(b))
+#     IterativeSolvers.bicgstabl(A, Array(b))
 
-ew, ev = eigs(Bop; nev=20, which=:SM)[1:2]
+# ew, ev = eigs(Bop; nev=20, which=:SM)[1:2]
+
+p(qs...) = plot([plot(d,q) for q in qs]...)

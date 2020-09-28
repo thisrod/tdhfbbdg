@@ -6,7 +6,6 @@ using Revise
 using Superfluids
 
 default(:legend, :none)
-default(:aspect_ratio, 1)
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
 d = FDDiscretisation{2}(66, 0.3)
