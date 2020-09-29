@@ -1,25 +1,8 @@
-using LinearAlgebra, Plots, JLD2
-
-using Revise
-using Superfluids
-
 default(:legend, :none)
-
-Superfluids.default!(Superfluid{2}(3000, (x,y)->x^2+y^2))
-Superfluids.default!(FDDiscretisation(150, 20))
-Superfluids.default!(:g_tol, 1e-7)
-g_tol = 1e-7
-s = Superfluids.default(:superfluid)
-d = Discretisation()
-
-@load "pair_modes.jld2"
 
 N = d.n
 
-us = [reshape(uvs[1:N^2, j], N, N) for j = axes(uvs,2)]
-vs = [reshape(uvs[N^2+1:end, j], N, N) for j = axes(uvs,2)]
-
-J = Superfluids.operators(s,d,:J) |> only
+# Fix normalisation
 jj = [dot(J(us[k]), us[k]) |> real for k = eachindex(ws)]
 
 PA = plot(d, q)
@@ -40,11 +23,9 @@ PD = plot(plot(d, us[2]), plot(d, vs[2]))
 title!("yellow/blue KT")
 savefig("../figs/resp200828d.pdf")
 
-PE = plot(p(umode(3)), p(vmode(3)))
+PE = p(us[3], vs[3])
 title!("green KT")
 savefig("../figs/resp200828e.pdf")
-
-uu = exp.(2π*1im*(0:0.05:1))
 
 "pci([q1, q2, ...]) pointwise Berry phase after sequence of states"
 function pci(S)
@@ -55,28 +36,26 @@ function pci(S)
     end
 end
 
-let j = 2, w = √(sum(abs2, us[j]) - sum(abs2, vs[j]))
-    us[j] ./= w
-    vs[j] ./= w
-end
-qs = [ψ + 0.07u*umode(2) + 0.07conj(u)*vmode(2) for u in uu]
-PF = @animate for j = 2:length(uu)
-    plot(
-        p(qs[j]),
-        p(pci(qs[1:j]))
-    )
+qs1 = [q + 0.07u*us[2] + 0.07conj(u)*vs[2] for u in hh]
+PF = @animate for j = 2:length(hh)
+    P = p(qs1[j])
+    rs = [rvs[k]+roff(q,us[2],vs[2],0.07hh[j],k) for k = 1:2]
+    scatter!(real(rs), imag(rs))
+    plot(P, p(pci(qs1[1:j])))
 end
 gif(PF, "../figs/resp200828f.gif", fps=2)
+
+# bp = sum(pci(qs))
 
 let j = 3, w = √(sum(abs2, us[j]) - sum(abs2, vs[j]))
     us[j] ./= w
     vs[j] ./= w
 end
-qs = [q + ee*u*us[3] + ee*conj(u)*vs[3] for u in uu]
-PG = @animate for j = 2:length(uu)
-    plot(
-        p(qs[j]),
-        p(pci(qs[1:j]))
-    )
+qs2 = [q + 0.07u*us[3] + 0.07conj(u)*vs[3] for u in hh]
+PG = @animate for j = 2:length(hh)
+    P = p(qs2[j] ./ abs.(qs2[j]))
+    rs = [rvs[k]+roff(q,us[3],vs[3],0.07hh[j],k) for k = 1:2]
+    scatter!(real(rs), imag(rs))
+    plot(P, p(pci(qs2[1:j])))
 end
 gif(PG, "../figs/bar.gif", fps=2)

@@ -1229,7 +1229,7 @@ uuid = "fb77eaff-e24c-56d4-86b1-d163f2edb164"
 version = "5.2.0+1"
 
 [[Superfluids]]
-deps = ["Arpack", "BandedMatrices", "ComplexPhasePortrait", "DifferentialEquations", "Interpolations", "LinearAlgebra", "LinearMaps", "Optim", "RecipesBase", "Statistics"]
+deps = ["Arpack", "BandedMatrices", "ComplexPhasePortrait", "DiffEqOperators", "DifferentialEquations", "Interpolations", "LinearAlgebra", "LinearMaps", "Optim", "RecipesBase", "Statistics"]
 path = "/Users/rpolkinghorne/.julia/dev/Superfluids"
 uuid = "01347403-e5cf-4a60-9350-9edf4e6960f2"
 version = "0.1.0"
