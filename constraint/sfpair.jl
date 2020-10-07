@@ -9,8 +9,8 @@ using Superfluids: find_vortices, poles, cluster_adjacent, adjacent_index
 default(:legend, :none)
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
-d = FDDiscretisation{2}(66, 0.3, 7)
-# d = FDDiscretisation{2}(90, 0.22, 4)
+# d = FDDiscretisation{2}(66, 0.3, 7)
+d = FDDiscretisation{2}(100, 0.2, 7)
 g_tol = 1e-7
 
 L, H, J = Superfluids.operators(s,d,:L,:H,:J)
@@ -19,6 +19,7 @@ L, H, J = Superfluids.operators(s,d,:L,:H,:J)
 μ = dot(L(ψ), ψ) |> real
 E₀ = dot(H(ψ), ψ) |> real
 R_TF = sqrt(2μ)
+Ω = 0.3
 
 function rsdl2(q, Ω)
     Lq = L(q;Ω)
@@ -26,20 +27,18 @@ function rsdl2(q, Ω)
     sum(abs2, Lq-μ*q)
 end
 
-Ω = 0.3
-rr = range(d.h, R_TF, length=15)
-qs = [steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=1000)
-    for r = rr]
-lEs = [real(dot(H(q),q)) for q in qs]
-rEs = [real(dot(H(q;Ω),q)) for q in qs]
-rdls = rsdl2.(qs, Ω)
-
-plot(
-    scatter(rr/R_TF, rEs.-E₀, xshowaxis=false, ylabel="E (rot)",
-        title="vortex pair, rotating frame W=0.3"),
-    scatter(rr/R_TF, rdls, xlabel="r/R_TF", ylabel="residual"),
-    layout=@layout [a;b]
-)
+# rr = range(d.h, R_TF, length=15)
+# qs = [steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=1000) for r = rr]
+# lEs = [real(dot(H(q),q)) for q in qs]
+# rEs = [real(dot(H(q;Ω),q)) for q in qs]
+# rdls = rsdl2.(qs, Ω)
+# 
+# plot(
+#     scatter(rr/R_TF, rEs.-E₀, xshowaxis=false, ylabel="E (rot)",
+#         title="vortex pair, rotating frame W=0.3"),
+#     scatter(rr/R_TF, rdls, xlabel="r/R_TF", ylabel="residual"),
+#     layout=@layout [a;b]
+# )
 
 function modes(d)
     H = Superfluids.operators(s,d,:H) |> only
