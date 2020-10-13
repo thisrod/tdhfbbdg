@@ -1,12 +1,14 @@
 # relax a pair of vortices using general Superfluids code
 
-using LinearAlgebra, Plots, Optim, Arpack
+using LinearAlgebra, Plots, Optim, Arpack, JLD2
 
 using Revise
 using Superfluids
 using Superfluids: find_vortices, poles, cluster_adjacent, adjacent_index
 
 default(:legend, :none)
+Superfluids.default!(:xlims, (-6,6))
+Superfluids.default!(:ylims, (-6,6))
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
 # d = FDDiscretisation{2}(66, 0.3, 7)
@@ -54,7 +56,9 @@ function modes(d)
     q, ws, us, vs
 end
 
-q, ws, us, vs = modes(d)
+# q, ws, us, vs = modes(d)
+
+@load "pair_modes.jld2" q ws us vs
 
 rvs = find_vortices(d, q)
 P, _ = poles(q)

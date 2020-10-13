@@ -1,4 +1,5 @@
 default(:legend, :none)
+using Superfluids: unroll
 
 N = d.n
 
@@ -41,21 +42,25 @@ PF = @animate for j = 2:length(hh)
     P = p(qs1[j])
     rs = [rvs[k]+roff(q,us[2],vs[2],0.07hh[j],k) for k = 1:2]
     scatter!(real(rs), imag(rs))
+    plot!(real(rvs[1].+rv1), imag(rvs[1].+rv1), lc=:white)
     plot(P, p(pci(qs1[1:j])))
 end
-gif(PF, "../figs/resp200828f.gif", fps=2)
+gif(PF, "../figs/foo.gif", fps=2)
 
 # bp = sum(pci(qs))
 
-let j = 3, w = √(sum(abs2, us[j]) - sum(abs2, vs[j]))
-    us[j] ./= w
-    vs[j] ./= w
-end
 qs2 = [q + 0.07u*us[3] + 0.07conj(u)*vs[3] for u in hh]
 PG = @animate for j = 2:length(hh)
-    P = p(qs2[j] ./ abs.(qs2[j]))
+    P = p(qs2[j])
     rs = [rvs[k]+roff(q,us[3],vs[3],0.07hh[j],k) for k = 1:2]
     scatter!(real(rs), imag(rs))
+    plot!(real(rvs[2].+rv2), imag(rvs[2].+rv2), lc=:white)
     plot(P, p(pci(qs2[1:j])))
 end
 gif(PG, "../figs/bar.gif", fps=2)
+
+uh = unroll(angle.(hh))
+PH = scatter(uh, [sum(abs2, pci(qs2[1:j])) for j = eachindex(hh)])
+scatter!(uh, [sum(abs2, (@. real(z)<0).*pci(qs2[1:j])) for j = eachindex(hh)])
+scatter!(uh, [sum(abs2, (@. real(z)>0).*pci(qs2[1:j])) for j = eachindex(hh)])
+plot!(uh, ncore*area2*uh)
