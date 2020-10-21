@@ -3,7 +3,7 @@
 using LinearAlgebra, Plots, Optim, Tables
 using Revise
 using Superfluids
-using Superfluids: relax, winding, loopixs, find_vortices, poles, cluster_adjacent, adjacent_index
+using Superfluids: relax, winding, loopixs, find_vortices, poles, cluster_adjacent, adjacent_index, cloud
 
 default(:legend, :none)
 Superfluids.default!(:xlims, (-6,6))
@@ -11,7 +11,7 @@ Superfluids.default!(:ylims, (-6,6))
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
 # d = FourierDiscretisation{2}(66, 0.3)
-d = FDDiscretisation{2}(200, 20/199)
+d = FourierDiscretisation{2}(200, 20/199)
 g_tol = 1e-7
 Ω = 0.3
 
@@ -26,9 +26,18 @@ rr = range(0.0, R_TF, length=10)
 rr = rr[2:end]
 lixs = loopixs(d, 1.1R_TF)
 
+ix = argmin(@. abs(z-rr[end-1]))
+r = z[ix]
+
+j = 1
+result = relax(s, d; rvs=Complex{Float64}[r], Ω, g_tol, iterations=j)
+w = result.minimizer
+result = relax(s, d; initial=cloud(d,r), Ω, g_tol, iterations=j)
+q = result.minimizer
+
 results = []
 for r = rr
-    result = relax(s, d; rvs=Complex{Float64}[r], Ω, g_tol, iterations=5000)
+    result = relax(s, d; rvs=Complex{Float64}[r], Ω, g_tol, iterations=5000, a=0.2)
     q = result.minimizer
     w, μ = [J(q)[:] q[:]] \ L(q)[:] |> real
     rd = L(q;Ω=w)-μ*q
@@ -48,6 +57,13 @@ for r = rr
 end
 println("Done")
 results = Tables.columntable(results)
+
+ww = range(0.2, 0.3, length=6)
+qs = []
+for Ω = ww
+    result = relax(s, d; rvs=Complex{Float64}[(rr[end-1]+rr[end])/2], Ω, g_tol, iterations=5000)
+    push!(qs, result.minimizer)
+end 
 
 uu = exp.(2π*1im*(0:0.01:1))
 
@@ -73,7 +89,28 @@ for j = Tables.rows(results)
     sleep(2)
 end
 
-plot(scatter(results.r, [results.rdl-results.sdl results.sdl]), scatter(results.r, results.w), layout=@layout[a;b])
+plot(scatter(results.r, results.rdl), scatter(results.r, results.w), layout=@layout[a;b])
+
+# secant method to find Ω fixed point
+function woff(r, a)
+    result = relax(s, d; rvs=Complex{Float64}[r], Ω, g_tol, iterations=5000, a)
+    q = result.minimizer
+    w, μ = [J(q)[:] q[:]] \ L(q)[:] |> real
+    w - Ω
+end
+
+r1 = 0.0
+s1 = woff(r1, 0.2)
+r2 = R_TF
+s2 = woff(r2, 0.2)
+
+for j = 1:10
+    r3 = (r1*s2-r2*s1)/(s2-s1)
+    r1 = r2
+    s1 = s2
+    r2 = r3
+    s2 = woff(r2, 0.2)
+end
 
 plotly()
 

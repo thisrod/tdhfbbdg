@@ -101,10 +101,10 @@ end
 # generate core paths
 hh = exp.(2π*1im*(0:0.05:1))
 
-rv1 = [roff(q, us[2],vs[2],0.07h,1) for h in hh]
+rv1 = [roff(q, 0.2us[2],0.2vs[2],h,1) for h in hh]
 area1 = sum([imag(conj(rv1[j-1])*rv1[j]) for j in eachindex(rv1)[2:end]]) / 2
 
-rv2 = [roff(q, us[3],vs[3],0.07h,1) for h in hh]
+rv2 = [roff(q, 0.2us[3],0.2vs[3],h,1) for h in hh]
 area2 = sum([imag(conj(rv2[j-1])*rv2[j]) for j in eachindex(rv2)[2:end]]) / 2
 
 # use pairplots.jl

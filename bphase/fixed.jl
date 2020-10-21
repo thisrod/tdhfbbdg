@@ -8,7 +8,7 @@ using Superfluids
 include("plotsty.jl")
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
-d = FDDiscretisation{2}(200, 20/199)
+d = FourierDiscretisation{2}(200, 20/199)
 
 dt = 1e-4
 R = 1.5	# orbit radius for GPE plots
@@ -34,13 +34,6 @@ nin = [sum(@. abs2(ψ)*(rs<s)) for s=0:d.h/5:R_TF]
 rr = range(0.0, R_TF, length=20)
 rr = rr[2:end]
 
-berry_diff(u,v) = imag(sum(conj(v).*u))
-
-function imprint_phase(u)
-    r₀ = find_vortex(d,u)
-    @. abs(u)*(z-r₀)/abs(z-r₀)
-end
-
 gp = similar(rr)	# GPE
 ip = similar(rr)	# imprinted
 ss = similar(rr)	# end radii
@@ -52,13 +45,25 @@ qs = similar(rr, Any)
 s1 = similar(rr, Any)
 s2 = similar(rr, Any)
 
+Ω = 0.3
+
+berry_diff(u,v) = imag(sum(conj(v).*u))
+
+function imprint_phase(u)
+    r₀ = find_vortex(d,u)
+    @. abs(u)*(z-r₀)/abs(z-r₀)
+end
+
 if false
 
-Threads.@threads for j = eachindex(rr)
+# Threads.@threads for j = eachindex(rr)
+for j = eachindex(rr)
     rv = rr[j]
     @info "Thread starting" j id=Threads.threadid()
     g_tol, h = 1e-7, 0.6
-    ws[j], qs[j] = relax_orbit(s, d, rv; g_tol, iterations=1000)
+    ws[j] = Ω
+    qs[j] = steady_state(s, d; rvs=Complex{Float64}[rv], Ω, g_tol, iterations=5000, a=0.2)
+    # ws[j], qs[j] = relax_orbit(s, d, rv; g_tol, iterations=1000)
     r₀ = find_vortex(d, qs[j])
     ss[j] = abs(r₀)
     nv[j] = sum(@. abs2(qs[j])*(r<ss[j]))
@@ -75,9 +80,9 @@ end
 
 PF = plot()
 plot!([R/R_TF, R/R_TF], [0.0, 0.4]; snapsty...)
-plot!(0:xy.h/5R_TF:1, nin; insty...)
-scatter!(ss/R_TF, -ip; impsty...)
-scatter!(ss/R_TF, -gp; bpsty...)
+plot!(0:d.h/5R_TF:1, nin; insty...)
+scatter!(ss/R_TF, ip; impsty...)
+scatter!(ss/R_TF, gp; bpsty...)
 xlims!(0,1)
 xticks!([0, 0.5, 1])
 savefig(PF, "resp200812e.pdf")
