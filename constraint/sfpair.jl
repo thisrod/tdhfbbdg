@@ -11,8 +11,8 @@ Superfluids.default!(:xlims, (-6,6))
 Superfluids.default!(:ylims, (-6,6))
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
-# d = FDDiscretisation{2}(66, 0.3, 7)
-d = FDDiscretisation{2}(100, 0.2, 7)
+d = FDDiscretisation{2}(66, 0.3, 7)
+# d = FDDiscretisation{2}(100, 0.2, 7)
 g_tol = 1e-7
 
 L, H, J = Superfluids.operators(s,d,:L,:H,:J)
@@ -29,18 +29,20 @@ function rsdl2(q, Ω)
     sum(abs2, Lq-μ*q)
 end
 
-# rr = range(d.h, R_TF, length=15)
-# qs = [steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=1000) for r = rr]
-# lEs = [real(dot(H(q),q)) for q in qs]
-# rEs = [real(dot(H(q;Ω),q)) for q in qs]
-# rdls = rsdl2.(qs, Ω)
-# 
-# plot(
-#     scatter(rr/R_TF, rEs.-E₀, xshowaxis=false, ylabel="E (rot)",
-#         title="vortex pair, rotating frame W=0.3"),
-#     scatter(rr/R_TF, rdls, xlabel="r/R_TF", ylabel="residual"),
-#     layout=@layout [a;b]
-# )
+rr = range(d.h, R_TF, length=15)
+qs = [steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=5000) for r = rr]
+lEs = [real(dot(H(q),q)) for q in qs]
+rEs = [real(dot(H(q;Ω),q)) for q in qs]
+rdls = rsdl2.(qs, Ω)
+
+# for q in qs; plot(d,@. q/abs(q)) |> display; sleep(2); end
+
+plot(
+    scatter(rr/R_TF, rEs.-E₀, xshowaxis=false, ylabel="E (rot)",
+        title="vortex pair, rotating frame W=0.3"),
+    scatter(rr/R_TF, rdls, xlabel="r/R_TF", ylabel="residual"),
+    layout=@layout [a;b]
+)
 
 function modes(d)
     H = Superfluids.operators(s,d,:H) |> only
