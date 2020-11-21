@@ -1,6 +1,6 @@
 # relax a pair of vortices using general Superfluids code
 
-using LinearAlgebra, Optim, JLD2
+using LinearAlgebra, Optim, JLD2, Printf
 
 using Revise
 using Superfluids
@@ -20,7 +20,7 @@ L, H, J = Superfluids.operators(s,d,:L,:H,:J)
 μ = dot(L(ψ), ψ) |> real
 E₀ = dot(H(ψ), ψ) |> real
 R_TF = sqrt(2μ)
-Ω = 0.3
+Ω = 0.27
 
 H = Superfluids.operators(s,d,:H) |> only
 result = optimize(0.2R_TF, 0.5R_TF, abs_tol=g_tol) do r
@@ -36,11 +36,3 @@ S = Superfluids.integrate(s, d, q,tt)
 @save "poff.jld2" tt S
 
 # for j in eachindex(qs); plot(d,@.qs[j]/abs(qs[j])); scatter!([rv1[j]]) |> display; sleep(0.2); end
-
-r1s = Complex{Float64}[]
-r2s = Complex{Float64}[]
-for q in qs
-    ra, rb = sort(find_vortices(d, q), by=real)
-    push!(r1s, ra)
-    push!(r2s, rb)
-end

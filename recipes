@@ -5,6 +5,7 @@ cd /fred/oz127/rpolking
 9 ls -t $DESK/ozstar | head -6
 /Users/rpolkinghorne/Desktop/ozstar
 /Users/rpolkinghorne/Desktop/ozfred
+/Users/rpolkinghorne/.julia/dev/Superfluids/src
 web https://supercomputing.swin.edu.au/monitor/
 web https://supercomputing.swin.edu.au/docs
 for (file in `{du -a $HOME | awk '/\.git$/ {print $2}'}) {echo '******  '^$file^'  ******'; git -C $file/.. status}

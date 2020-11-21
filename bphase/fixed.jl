@@ -1,14 +1,16 @@
 # relax an order parameter with a vortex position constraint
 
-using LinearAlgebra, Plots, DifferentialEquations, Interpolations
+using LinearAlgebra, Plots, DifferentialEquations, Optim, Interpolations
 
 using Revise
 using Superfluids
+using Superfluids: relax, cloud, argand
 
 include("plotsty.jl")
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
 d = FourierDiscretisation{2}(200, 20/199)
+g_tol, h = 1e-7, 0.6
 
 dt = 1e-4
 R = 1.5	# orbit radius for GPE plots
@@ -54,16 +56,24 @@ function imprint_phase(u)
     @. abs(u)*(z-r₀)/abs(z-r₀)
 end
 
+function wdisc(r, w, a)
+    q = steady_state(s, d; rvs=[r], Ω=w, g_tol, iterations=5000, as=[a])
+    w2, μ = [J(q)[:] q[:]] \ L(q)[:] |> real
+    w2-w
+end
+
 if false
 
 # Threads.@threads for j = eachindex(rr)
 for j = eachindex(rr)
     rv = rr[j]
     @info "Thread starting" j id=Threads.threadid()
-    g_tol, h = 1e-7, 0.6
+    a = 0.3 + 0.7*j/length(rr)
+    wend = 0.4 + 0.02*j/length(rr)
+    result = optimize(w->abs2(wdisc(rv, w, 0.3)), 0.1, wend, abs_tol=g_tol)
+    Ω = result.minimizer
     ws[j] = Ω
-    qs[j] = steady_state(s, d; rvs=Complex{Float64}[rv], Ω, g_tol, iterations=5000, a=0.2)
-    # ws[j], qs[j] = relax_orbit(s, d, rv; g_tol, iterations=1000)
+    qs[j] = steady_state(s, d; rvs=Complex{Float64}[rv], Ω, g_tol, iterations=5000, a)
     r₀ = find_vortex(d, qs[j])
     ss[j] = abs(r₀)
     nv[j] = sum(@. abs2(qs[j])*(r<ss[j]))
