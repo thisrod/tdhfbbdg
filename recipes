@@ -1,6 +1,7 @@
 sshfs rpolking@ozstar.swin.edu.au: $DESK/ozstar
 sshfs rpolking@ozstar.swin.edu.au:/fred/oz127/rpolking $DESK/ozfred
 win ssh -l rpolking ozstar.swin.edu.au
+ssh -l rpolking ozstar.swin.edu.au 'squeue | grep `whoami`'
 cd /fred/oz127/rpolking
 9 ls -t $DESK/ozstar | head -6
 /Users/rpolkinghorne/Desktop/ozstar
@@ -13,3 +14,4 @@ for (f in `{ls -t *.jl | head -10}) echo $f `{head -1 $f}
 9 grep -h '^(z|arg)plot' `{ls -t *.jl} | head -4
 g '\\title' notes/*.tex
 ls figs/resp*.pdf | sort | tail -1
+Edit ,> awk 'BEGIN {split("0 1 0 0 0 5 0 30", m)}  {c += m[NR]*$1}  END {print c}'

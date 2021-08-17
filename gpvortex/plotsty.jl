@@ -7,9 +7,9 @@ Plots.default(:framestyle, :box)
 Plots.default(:fontfamily, "Latin Modern Sans")
 Plots.default(:size, (200,200))
 
-function plot_trace(z, col)
-    plot!(real.(z), imag.(z), lc=col, leg=:none)
-    scatter!(real.(z[1:1]), imag.(z[1:1]), ms=5, mc=col, msw=0)
+function plot_trace(z, col, arrow=false)
+    plot!(real.(z), imag.(z), lc=col, leg=:none; arrow)
+    arrow || scatter!(real.(z[1:1]), imag.(z[1:1]), ms=5, mc=col, msw=0)
 end
 
 # Colors for Berry phase plots
@@ -24,3 +24,9 @@ nsty = (lc=nsty,)
 snapsty = (lc=snapsty, lw=0.5)
 
 recsize=(100,200)
+
+# Kludge, should do proper interpolation in Superfluids
+function slice(u)
+    j = size(u, 2)÷2
+    sum(u[:,j:j+1], dims=2)[:]/2
+end

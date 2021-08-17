@@ -11,8 +11,9 @@ Superfluids.default!(:xlims, (-6,6))
 Superfluids.default!(:ylims, (-6,6))
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
-d = FDDiscretisation{2}(66, 0.3, 7)
+# d = FDDiscretisation{2}(66, 0.3, 7)
 # d = FDDiscretisation{2}(100, 0.2, 7)
+d = FourierDiscretisation{2}(100, 0.2)
 g_tol = 1e-7
 
 L, H, J = Superfluids.operators(s,d,:L,:H,:J)
@@ -21,7 +22,7 @@ L, H, J = Superfluids.operators(s,d,:L,:H,:J)
 μ = dot(L(ψ), ψ) |> real
 E₀ = dot(H(ψ), ψ) |> real
 R_TF = sqrt(2μ)
-Ω = 0.3
+Ω = 0.27
 
 function rsdl2(q, Ω)
     Lq = L(q;Ω)
@@ -47,11 +48,11 @@ plot(
 function modes(d)
     H = Superfluids.operators(s,d,:H) |> only
     result = optimize(0.2R_TF, 0.5R_TF, abs_tol=g_tol) do r
-        q = steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=5000)
+        q = steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=5000, as=[0.5,0.5])
         real(dot(H(q;Ω),q))
     end
     r = result.minimizer
-    q = steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=5000)
+    q = steady_state(s, d; rvs=Complex{Float64}[-r, r], Ω, g_tol, iterations=5000, as=[0.5,0.5])
     B = Superfluids.BdGmatrix(s,d,Ω,q)
     ew, ev = eigs(B, nev=20, which=:SM)
     ws, us, vs = Superfluids.bdg_output(d, ew, ev)

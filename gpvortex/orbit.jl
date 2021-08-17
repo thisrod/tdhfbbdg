@@ -1,6 +1,6 @@
 # Orbiting vortex plots.  See also fixed.jl
 
-using LinearAlgebra, Plots, ComplexPhasePortrait, Colors
+using LinearAlgebra, Plots, ComplexPhasePortrait, Colors, Optim
 using Statistics: mean
 
 using Revise
@@ -10,15 +10,25 @@ using Superfluids: unroll
 include("plotsty.jl")
 
 s = Superfluid{2}(500, (x,y)->(x^2+y^2)/2)
-d = FDDiscretisation{2}(200, 20/199)
+d = FourierDiscretisation{2}(200, 20/199)
 L = Superfluids.operators(s,d,:L) |> only
 
 R = 1.5	# orbit radius
 JJ = 11	# snapshots at S[JJ]
+g_tol = 1e-6
 
 ψ = steady_state(s,d)
 μ = dot(ψ,L(ψ)) |> real
-Ω, q = relax_orbit(s, d, R, Ωs=[0.1, 0.3], g_tol=1e-6, iterations=1000)
+
+L, J = Superfluids.operators(s,d,:L,:J)
+
+function wdisc(r, w, a)
+    q = steady_state(s, d; rvs=[r], Ω=w, g_tol, iterations=5000, as=[a])
+    w2, μ = [J(q)[:] q[:]] \ L(q)[:] |> real
+    w2-w
+end
+
+result = optimize(w->abs2(wdisc(complex(R), w, 0.5)), 0.1, 0.3, abs_tol=g_tol)
 
 tt = range(0.0, 2π/Ω, length=16)
 qq = Superfluids.integrate(s, d, q, tt; μ)
