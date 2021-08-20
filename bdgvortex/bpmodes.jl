@@ -14,8 +14,8 @@ R = 10
 s = Superfluid{2}(100.0, (x,y)->(x^2+y^2)/2) |> Superfluids.default!
 d = FourierDiscretisation{2}(100, 0.121) |> Superfluids.default!
 
-Superfluids.default!(:xlims, (-4,4))
-Superfluids.default!(:ylims, (-4,4))
+Superfluids.default!(:xlims, (-5,5))
+Superfluids.default!(:ylims, (-5,5))
 Plots.default(:legend, :none)
 
 J = Superfluids.operators(:J) |> only
@@ -173,12 +173,41 @@ att!(key::Symbol, j::Integer, color=:white) = att!(Val(key), (@sprintf "%d" j), 
 att!(key::Symbol, x::Real, color=:white) = att!(Val(key), (@sprintf "%.3f" x), color)
 att!(::Val{:mode}, s, color) = annotate!(5.7,5.7,text(s,:top,:right, 7, color))
 
-# select(4)
+function slt(u1=us[1], u2=us[2])	# split frame
+    z = argand(d)
+    s = similar(q)
+    ixs = @. imag(z) > 0
+    s[ixs] = u1[ixs] / maximum(abs, u1)
+    ixs = @. imag(z) < 0
+    s[ixs] = u2[ixs] / maximum(abs, u2)
+    s
+end
+
 # x, _ = Superfluids.daxes(d)
-# p(q; kwargs...) = (phaseplot(x, x, q, γ=1.7, xlims=(-4,4), ylims=(-4,4), size=(200,200); kwargs...); core!())
+# p(q; kwargs...) = (phaseplot(x, x, q, γ=1.7, xlims=(-5,5), ylims=(-5,5), size=(200,200); kwargs...); core!())
 # p(q, r) = (clim = maximum(abs, [q r]); (p(q; clim), p(r; clim)))
-# plot(p(q), p(us[2]), p(us[ja], vs[ja])..., p(-us[jc], -vs[jc])..., p(us[jb], vs[jb])..., layout=(4,2), size=(400,800))
-# savefig("../figs/resp210629a.pdf")
+# Plots.default(:frame, :box)
+# ax = -4:2:4; ax = (ax, string.(ax))
+
+# @load "firmmodes.jld2"
+# pts = []
+# select(1); push!(pts, p(slt(), xticks=ax, yticks=ax));  savefig("../figs/resp210818a.pdf")
+# select(3); push!(pts, p(slt(), xticks=ax, yticks=((),())));  savefig("../figs/resp210818b.pdf")
+# select(6); push!(pts, p(slt(), xticks=ax, yticks=((),())));  savefig("../figs/resp210818c.pdf")
+# select(8); push!(pts, p(slt(), xticks=ax, yticks=((),())));  savefig("../figs/resp210818d.pdf")
+# push!(pts, p(slt((@.us[1]/abs(us[1])), (@.us[2]/abs(us[2]))), xticks=ax, yticks=((),())));  savefig("../figs/resp210818e.pdf")
+# plot(pts..., layout=(1,5), size=(1000,200));  savefig("../figs/resp210818f.pdf")
+
+# @load "firmpairmodes.jld2"
+# pts = []
+# select(4); push!(pts, p(slt(), xticks=ax, yticks=ax));  savefig("../figs/resp210819a.pdf")
+# @load "firmtriplemodes.jld2"
+# select(4); push!(pts, p(slt(), xticks=ax, yticks=((),())));  savefig("../figs/resp210819b.pdf")
+# @load "sevenmodes.jld2"
+# select(1); push!(pts, p(slt(), xticks=ax, yticks=((),())));  savefig("../figs/resp210819c.pdf")
+# plot(pts..., layout=(1,3), size=(600,200));  savefig("../figs/resp210819d.pdf")
+
+
 
 # nk = fill(3, length(Ωs));  nk[1] = 5;
 

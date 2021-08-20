@@ -1107,7 +1107,9 @@ version = "1.1.0"
 
 [[PhasePlots]]
 deps = ["ColorTypes", "RecipesBase"]
-path = "/Users/rpolkinghorne/.julia/dev/PhasePlots"
+git-tree-sha1 = "38f61ad822c3f2b1d7b0e366603d7460b826f653"
+repo-rev = "3ff7f7da3864549ae0a3cc6b911b8a7f529c0fd7"
+repo-url = "https://github.com/thisrod/PhasePlots.jl.git"
 uuid = "349e0b94-16c6-46d1-9b3f-4237bdd37240"
 version = "0.1.0"
 
@@ -1446,8 +1448,8 @@ version = "5.2.0+1"
 [[Superfluids]]
 deps = ["Arpack", "BandedMatrices", "ComplexPhasePortrait", "DiffEqOperators", "DifferentialEquations", "FFTW", "Interpolations", "LinearAlgebra", "LinearMaps", "Optim", "PlotUtils", "RecipesBase", "Statistics"]
 git-tree-sha1 = "67dcaf01551c110bd9e98588338a21359c5be088"
-repo-rev = "a52a6b8"
-repo-url = "/Users/rpolkinghorne/.julia/dev/Superfluids"
+repo-rev = "a52a6b8105270979a0e24dd07d61f12f6a73231e"
+repo-url = "https://github.com/thisrod/Superfluids.jl.git"
 uuid = "01347403-e5cf-4a60-9350-9edf4e6960f2"
 version = "0.1.0"
 
